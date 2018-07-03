@@ -48,22 +48,22 @@ public final class PAColor {
     }
     
     /**
-     * Creates a new ParticleColor from three values
+     * Creates a new PAColor from three values
      * 
      * @param r Red amount
      * @param g Green amount
      * @param b Blue amount
-     * @return A new ParticalColor
+     * @return A new PAColor
      */
     public static PAColor fromRGB(int r, int g, int b) {
 	return new PAColor(r, g, b);
     }
     
     /**
-     * Creates a new ParticleColor from a hex code as an integer IE '0xff0000' would be red
+     * Creates a new PAColor from a hex code as an integer IE '0xff0000' would be red
      * 
      * @param rgb A hexadeciml literal
-     * @return A new ParticalColor
+     * @return A new PAColor
      */
     public static PAColor fromRGB(int rgb) {
 	if ((rgb >> 24) != 0) {
@@ -73,9 +73,9 @@ public final class PAColor {
     }
     
     /**
-     * Get a random particle color
+     * Get a random PAColor
      * 
-     * @return Randomly generated PaarticleColor
+     * @return Randomly generated PAColor
      */
     public static PAColor randomColor() {
 	Random r = new Random();
