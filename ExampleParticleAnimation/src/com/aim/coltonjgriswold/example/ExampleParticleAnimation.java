@@ -7,6 +7,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.aim.coltonjgriswold.example.actions.Actions;
 import com.aim.coltonjgriswold.example.shapes.Cube;
 import com.aim.coltonjgriswold.paapi.api.graphics.PAAnimation;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAColor;
@@ -25,6 +26,7 @@ public class ExampleParticleAnimation extends JavaPlugin implements Listener {
 	if (!running) {
 	    Player player = event.getPlayer();
 	    Cube cube = new Cube(Particle.REDSTONE, player.getEyeLocation(), PAColor.fromRGB(255, 0, 0), 0.75);
+	    cube.setAction(new Actions(cube));
 	    PAAnimation animation = new PAAnimation();
 	    animation.addObject(cube);
 	    animation.start(2);
