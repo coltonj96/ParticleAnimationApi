@@ -29,6 +29,6 @@ public class Actions extends PAAction {
 	}
 	if (b[2] == 9)
 	    b = new int[] { 0, 0, 0 };
+	a.draw();
     }
-
 }

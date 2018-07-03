@@ -21,7 +21,7 @@ public class ExampleParticleAnimation extends JavaPlugin implements Listener {
     }
     
     @EventHandler
-    public void OnClickAir(PlayerLoginEvent event) {
+    public void OnLogin(PlayerLoginEvent event) {
 	if (!running) {
 	    Player player = event.getPlayer();
 	    Cube cube = new Cube(Particle.REDSTONE, player.getEyeLocation(), PAColor.fromRGB(255, 0, 0), 0.75);
