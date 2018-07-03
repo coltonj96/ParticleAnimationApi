@@ -4,7 +4,8 @@ import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerLoginEvent;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.aim.coltonjgriswold.example.actions.Actions;
@@ -22,10 +23,10 @@ public class ExampleParticleAnimation extends JavaPlugin implements Listener {
     }
     
     @EventHandler
-    public void OnLogin(PlayerLoginEvent event) {
-	if (!running) {
+    public void interact(PlayerInteractEvent event) {
+	if (event.getAction().equals(Action.LEFT_CLICK_AIR) && !running) {
 	    Player player = event.getPlayer();
-	    Cube cube = new Cube(Particle.REDSTONE, player.getEyeLocation(), PAColor.fromRGB(255, 0, 0), 0.75);
+	    Cube cube = new Cube(Particle.REDSTONE, player.getLocation(), PAColor.fromRGB(255, 0, 0), 0.75);
 	    cube.setAction(new Actions(cube));
 	    PAAnimation animation = new PAAnimation();
 	    animation.addObject(cube);
