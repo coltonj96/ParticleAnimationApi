@@ -27,7 +27,7 @@ public class ExampleParticleAnimation extends JavaPlugin implements Listener {
     public void interact(PlayerInteractEvent event) {
 	if (event.getAction().equals(Action.LEFT_CLICK_AIR) && !running) {
 	    Player player = event.getPlayer();
-	    PATris tris = new PATris(Particle.REDSTONE, player.getLocation(), new Vector(0.5, 0.5, 0.0), new Vector(0.0, -0.5, 0.0), new Vector(-0.5, 0.5, 0.5), PAColor.fromRGB(0, 255, 0));
+	    PATris tris = new PATris(Particle.REDSTONE, player.getLocation().add(0, 1, 0), new Vector(1, 1, 0), new Vector(0, -1, 0), new Vector(-1, 1, 0), PAColor.fromRGB(0, 255, 0));
 	    tris.setAction(new Actions());
 	    PAAnimation animation = new PAAnimation();
 	    animation.addObject(tris);
