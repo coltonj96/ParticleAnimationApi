@@ -82,7 +82,9 @@ public class PAAnimation {
 		    return;
 		}
 		for (PAObject object : a) {
-		    object.getAction().run();
+		    if (object.getAction() != null)
+			object.getAction().run(object);
+		    object.draw();
 		}
 	    }
 	    

@@ -50,14 +50,6 @@ public abstract class PAObject {
 	b = nodes;
 	c = size;
 	d = UUID.randomUUID();
-	e = new PAAction() {
-
-	    @Override
-	    public void run() {
-		draw();
-	    }
-	    
-	};
 	f = new double[] { 0.0, 0.0, 0.0 };
     }
     
