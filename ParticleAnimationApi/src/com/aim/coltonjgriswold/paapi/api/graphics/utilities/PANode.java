@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.bukkit.Particle;
+import org.bukkit.material.MaterialData;
 import org.bukkit.util.Vector;
 
 public class PANode {
@@ -13,6 +14,7 @@ public class PANode {
     private Vector c;
     private PAColor d;
     private Set<PANode> e;
+    private MaterialData f;
     
     /**
      * Utility class used to hold information about object gemoetry
@@ -118,12 +120,34 @@ public class PANode {
     }
     
     /**
+     * Gets the vlue of the particle data
+     * 
+     * @return Integer
+     */
+    public MaterialData getData() {
+	return f;
+    }
+    
+    public boolean canSetData() {
+	return a.equals(Particle.BLOCK_CRACK) || a.equals(Particle.BLOCK_DUST) || a.equals(Particle.FALLING_DUST);
+    }
+    
+    /**
      * Gets if this node has a color
      * 
      * @return boolean
      */
     public boolean hasColor() {
 	return d != null;
+    }
+    
+    /**
+     * Gets if this node has data associated with the particle
+     * 
+     * @return boolean
+     */
+    public boolean hasData() {
+	return f != null;
     }
     
     /**
@@ -143,7 +167,7 @@ public class PANode {
     }
     
     /**
-     * Sets the color of this node if the particle type is colorable
+     * Attempts to set the color of this node
      * 
      * @param color PAColor to use
      * @return boolean
@@ -151,6 +175,20 @@ public class PANode {
     public boolean setColor(PAColor color) {
 	if (isColorable()) {
 	    d = color;
+	    return true;
+	}
+	return false;
+    }
+    
+    /**
+     * Attempts to set the data for this node
+     * 
+     * @param value The data value
+     * @return boolean
+     */
+    public boolean setData(MaterialData data) {
+	if (canSetData()) {
+	    f = data;
 	    return true;
 	}
 	return false;

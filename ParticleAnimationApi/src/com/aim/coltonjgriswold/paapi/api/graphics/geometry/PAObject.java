@@ -17,6 +17,7 @@ public abstract class PAObject {
     private double c;
     private UUID d;
     private PAAction e;
+    private double[] f;
     
     /**
      * Where to spawn the center of this new PAObject with a size of 1.0
@@ -57,6 +58,7 @@ public abstract class PAObject {
 	    }
 	    
 	};
+	f = new double[] { 0.0, 0.0, 0.0 };
     }
     
     /**
@@ -73,9 +75,15 @@ public abstract class PAObject {
 			    double red = ((node.getColor().getRed() + 1.0) / 255.0);
 			    double green = node.getColor().getGreen() / 255.0;
 			    double blue = node.getColor().getBlue() / 255.0;
-			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, red, green, blue, 1.0);
+			    if (node.canSetData() && node.hasData())
+				a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, red, green, blue, 1.0, node.getData());
+			    else
+				a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, red, green, blue, 1.0);
 			} else {
-			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, 1.0);
+			    if (node.canSetData() && node.hasData())
+				a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, 0.0, node.getData());
+			    else
+				a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, 0.0);
 			}
 		    }
 		}
@@ -253,6 +261,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateX(double degrees) {
+	f[0] += degrees;
 	double theta = Math.toRadians(degrees);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -274,6 +283,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateY(double degrees) {
+	f[1] += degrees;
 	double theta = Math.toRadians(degrees);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -295,10 +305,102 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateZ(double degrees) {
+	f[2] += degrees;
 	double theta = Math.toRadians(degrees);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
 	for (PANode node : b) {
+	    Vector v = node.getOffset();
+	    double x = v.getX();
+	    double y = v.getY();
+	    double z = v.getZ();
+	    v.setX((x * cos) - (y * sin));
+	    v.setY((y * cos) + (x * sin));
+	    v.setZ(z);
+	    node.setOffset(v);
+	}
+    }
+    
+    /**
+     * Set the rotation of this object (degrees)
+     * 
+     * @param rotation
+     */
+    public void setRotation(Vector rotation) {
+	setRotation(rotation.getX(), rotation.getY(), rotation.getZ());
+    }
+    
+    /**
+     * Set the rotation of this object
+     * 
+     * @param degreesX
+     * @param degreesY
+     * @param degreesZ
+     */
+    public void setRotation(double degreesX, double degreesY, double degreesZ) {
+	setRotationX(degreesX);
+	setRotationX(degreesY);
+	setRotationX(degreesZ);
+    }
+    
+    /**
+     * Set rotation on the X-axis
+     * 
+     * @param degrees
+     */
+    public void setRotationX(double degrees) {
+	f[0] = degrees;
+	double theta = Math.toRadians(degrees);
+	double sin = Math.sin(theta);
+	double cos = Math.cos(theta);
+	for (PANode node : b) {
+	    node.resetOffset();
+	    Vector v = node.getOffset();
+	    double x = v.getX();
+	    double y = v.getY();
+	    double z = v.getZ();
+	    v.setX(x);
+	    v.setY((y * cos) - (z * sin));
+	    v.setZ((z * cos) + (y * sin));
+	    node.setOffset(v);
+	}
+    }
+    
+    /**
+     * Set rotation on the Y-axis
+     * 
+     * @param degrees
+     */
+    public void setRotationY(double degrees) {
+	f[1] = degrees;
+	double theta = Math.toRadians(degrees);
+	double sin = Math.sin(theta);
+	double cos = Math.cos(theta);
+	for (PANode node : b) {
+	    node.resetOffset();
+	    Vector v = node.getOffset();
+	    double x = v.getX();
+	    double y = v.getY();
+	    double z = v.getZ();
+	    v.setX((x * cos) - (z * sin));
+	    v.setY(y);
+	    v.setZ((z * cos) + (x * sin));
+	    node.setOffset(v);
+	}
+    }
+    
+    /**
+     * Set rotation on the Z-axis
+     * 
+     * @param degrees
+     */
+    public void setRotationZ(double degrees) {
+	f[2] = degrees;
+	double theta = Math.toRadians(degrees);
+	double sin = Math.sin(theta);
+	double cos = Math.cos(theta);
+	for (PANode node : b) {
+	    node.resetOffset();
 	    Vector v = node.getOffset();
 	    double x = v.getX();
 	    double y = v.getY();
@@ -317,6 +419,42 @@ public abstract class PAObject {
      */
     public PAAction getAction() {
 	return e;
+    }
+    
+    /**
+     * Gets the rotation of this object
+     * 
+     * @return double[]
+     */
+    public double[] getRotation() {
+	return f;
+    }
+    
+    /**
+     * Gets the X-axis rotation of this object
+     * 
+     * @return double
+     */
+    public double getRotationX() {
+	return f[0];
+    }
+    
+    /**
+     * Gets the Y-axis rotation of this object
+     * 
+     * @return double
+     */
+    public double getRotationY() {
+	return f[1];
+    }
+    
+    /**
+     * Gets the Z-axis rotation of this object
+     * 
+     * @return double
+     */
+    public double getRotationZ() {
+	return f[2];
     }
     
     /**
