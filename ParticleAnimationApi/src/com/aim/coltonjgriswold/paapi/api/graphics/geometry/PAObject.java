@@ -17,7 +17,7 @@ public abstract class PAObject {
     private double c;
     private UUID d;
     private PAAction e;
-    private double[] f;
+    private Vector f;
     
     /**
      * Where to spawn the center of this new PAObject with a size of 1.0
@@ -50,7 +50,7 @@ public abstract class PAObject {
 	b = nodes;
 	c = size;
 	d = UUID.randomUUID();
-	f = new double[] { 0.0, 0.0, 0.0 };
+	f = new Vector(0, 0, 0);
     }
     
     /**
@@ -210,10 +210,47 @@ public abstract class PAObject {
     /**
      * Move this object
      * 
-     * @param vector A vector
+     * @param amount The amount as a Vector
      */
-    public void move(Vector vector) {
-	a.add(vector);
+    public void move(Vector amount) {
+	a.add(amount);
+    }
+    
+    /**
+     * Moves this object relative its location
+     * 
+     * @param x X amount
+     * @param y Y amount
+     * @param z	Z amount
+     */
+    public void moveRelative(double x, double y, double z) {
+	Vector amount = new Vector(x, y, z);
+	for (PANode node : b) {
+	    node.setOffset(node.getOffset().add(amount));
+	}
+    }
+    
+    /**
+     * Moves this object relative its location
+     * 
+     * @param relative The relative amount
+     */
+    public void moveRelative(Vector relative) {
+	for (PANode node : b) {
+	    node.setOffset(node.getOffset().add(relative));
+	}
+    }
+    
+    /**
+     * Moves this object relative its location
+     * 
+     * @param relative The amount as a location
+     */
+    public void moveRelative(Location relative) {
+	Vector amount = relative.toVector();
+	for (PANode node : b) {
+	    node.setOffset(node.getOffset().add(amount));
+	}
     }
     
     /**
@@ -253,7 +290,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateX(double degrees) {
-	f[0] += degrees;
+	f.setX(f.getX() + degrees);
 	double theta = Math.toRadians(degrees);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -275,7 +312,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateY(double degrees) {
-	f[1] += degrees;
+	f.setY(f.getY() + degrees);
 	double theta = Math.toRadians(degrees);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -297,7 +334,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateZ(double degrees) {
-	f[2] += degrees;
+	f.setZ(f.getZ() + degrees);
 	double theta = Math.toRadians(degrees);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -341,7 +378,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void setRotationX(double degrees) {
-	f[0] = degrees;
+	f.setX(degrees);
 	double theta = Math.toRadians(degrees);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -364,7 +401,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void setRotationY(double degrees) {
-	f[1] = degrees;
+	f.setY(degrees);
 	double theta = Math.toRadians(degrees);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -387,7 +424,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void setRotationZ(double degrees) {
-	f[2] = degrees;
+	f.setZ(degrees);
 	double theta = Math.toRadians(degrees);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -416,9 +453,9 @@ public abstract class PAObject {
     /**
      * Gets the rotation of this object
      * 
-     * @return double[]
+     * @return Vector
      */
-    public double[] getRotation() {
+    public Vector getRotation() {
 	return f;
     }
     
@@ -428,7 +465,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getRotationX() {
-	return f[0];
+	return f.getX();
     }
     
     /**
@@ -437,7 +474,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getRotationY() {
-	return f[1];
+	return f.getY();
     }
     
     /**
@@ -446,7 +483,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getRotationZ() {
-	return f[2];
+	return f.getZ();
     }
     
     /**
