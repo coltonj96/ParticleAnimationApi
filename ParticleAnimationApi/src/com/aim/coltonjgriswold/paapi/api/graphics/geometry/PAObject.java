@@ -368,8 +368,8 @@ public abstract class PAObject {
      */
     public void setRotation(double degreesX, double degreesY, double degreesZ) {
 	setRotationX(degreesX);
-	setRotationX(degreesY);
-	setRotationX(degreesZ);
+	setRotationY(degreesY);
+	setRotationZ(degreesZ);
     }
     
     /**
