@@ -120,7 +120,7 @@ public class PANode {
     }
     
     /**
-     * Gets the vlue of the particle data
+     * Gets the value of the particle data
      * 
      * @return Integer
      */
@@ -128,6 +128,11 @@ public class PANode {
 	return f;
     }
     
+    /**
+     * Gets if this node can have extra data
+     * 
+     * @return boolean
+     */
     public boolean canSetData() {
 	return a.equals(Particle.BLOCK_CRACK) || a.equals(Particle.BLOCK_DUST) || a.equals(Particle.FALLING_DUST);
     }
@@ -142,7 +147,7 @@ public class PANode {
     }
     
     /**
-     * Gets if this node has data associated with the particle
+     * Gets if this node has extra data
      * 
      * @return boolean
      */
@@ -192,6 +197,15 @@ public class PANode {
 	    return true;
 	}
 	return false;
+    }
+    
+    /**
+     * Sets the nodes offset
+     * 
+     * @param x Offset x amount
+     */
+    public void setOffset(double x, double y, double z) {
+	setOffset(new Vector(x, y, z));
     }
     
     /**

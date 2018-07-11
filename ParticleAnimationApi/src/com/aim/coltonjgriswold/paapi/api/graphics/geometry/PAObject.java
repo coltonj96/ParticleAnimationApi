@@ -4,9 +4,13 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
+import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectMoveEvent;
+import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectMoveRelativeEvent;
+import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectRotateEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAAction;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PANode;
 
@@ -204,7 +208,10 @@ public abstract class PAObject {
      * @param z Zaxis
      */
     public void move(double x, double y, double z) {
-	a.add(x, y, z);
+	PAObjectMoveEvent event = new PAObjectMoveEvent(this, a.toVector(), a.clone().add(x, y, z).toVector());
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled())
+	    a.add(x, y, z);
     }
     
     /**
@@ -213,7 +220,10 @@ public abstract class PAObject {
      * @param amount The amount as a Vector
      */
     public void move(Vector amount) {
-	a.add(amount);
+	PAObjectMoveEvent event = new PAObjectMoveEvent(this, a.toVector(), a.clone().add(amount).toVector());
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled())
+	    a.add(amount);
     }
     
     /**
@@ -225,8 +235,12 @@ public abstract class PAObject {
      */
     public void moveRelative(double x, double y, double z) {
 	Vector amount = new Vector(x, y, z);
-	for (PANode node : b) {
-	    node.setOffset(node.getOffset().add(amount));
+	PAObjectMoveRelativeEvent event = new PAObjectMoveRelativeEvent(this, a.toVector(), a.clone().add(amount).toVector());
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    for (PANode node : b) {
+		node.setOffset(node.getOffset().add(amount));
+	    }
 	}
     }
     
@@ -236,8 +250,12 @@ public abstract class PAObject {
      * @param relative The relative amount
      */
     public void moveRelative(Vector relative) {
-	for (PANode node : b) {
-	    node.setOffset(node.getOffset().add(relative));
+	PAObjectMoveRelativeEvent event = new PAObjectMoveRelativeEvent(this, a.toVector(), a.clone().add(relative).toVector());
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    for (PANode node : b) {
+		node.setOffset(node.getOffset().add(relative));
+	    }
 	}
     }
     
@@ -248,8 +266,12 @@ public abstract class PAObject {
      */
     public void moveRelative(Location relative) {
 	Vector amount = relative.toVector();
-	for (PANode node : b) {
-	    node.setOffset(node.getOffset().add(amount));
+	PAObjectMoveRelativeEvent event = new PAObjectMoveRelativeEvent(this, a.toVector(), a.clone().add(amount).toVector());
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    for (PANode node : b) {
+		node.setOffset(node.getOffset().add(amount));
+	    }
 	}
     }
     
@@ -279,9 +301,13 @@ public abstract class PAObject {
      * @param degreesZ
      */
     public void rotate(double degreesX, double degreesY, double degreesZ) {
-	rotateX(degreesX);
-	rotateY(degreesY);
-	rotateZ(degreesZ);
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, f.clone(), f.clone().add(new Vector(degreesX, degreesY, degreesZ)));
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    rotX(degreesX);
+	    rotY(degreesY);
+	    rotZ(degreesZ);
+	}
     }
     
     /**
@@ -290,19 +316,10 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateX(double degrees) {
-	f.setX(f.getX() + degrees);
-	double theta = Math.toRadians(degrees);
-	double sin = Math.sin(theta);
-	double cos = Math.cos(theta);
-	for (PANode node : b) {
-	    Vector v = node.getOffset();
-	    double x = v.getX();
-	    double y = v.getY();
-	    double z = v.getZ();
-	    v.setX(x);
-	    v.setY((y * cos) - (z * sin));
-	    v.setZ((z * cos) + (y * sin));
-	    node.setOffset(v);
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, f.clone(), f.clone().add(new Vector(degrees, 0, 0)));
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    rotX(degrees);
 	}
     }
     
@@ -312,19 +329,10 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateY(double degrees) {
-	f.setY(f.getY() + degrees);
-	double theta = Math.toRadians(degrees);
-	double sin = Math.sin(theta);
-	double cos = Math.cos(theta);
-	for (PANode node : b) {
-	    Vector v = node.getOffset();
-	    double x = v.getX();
-	    double y = v.getY();
-	    double z = v.getZ();
-	    v.setX((x * cos) - (z * sin));
-	    v.setY(y);
-	    v.setZ((z * cos) + (x * sin));
-	    node.setOffset(v);
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, f.clone(), f.clone().add(new Vector(0, degrees, 0)));
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    rotY(degrees);
 	}
     }
     
@@ -334,19 +342,10 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateZ(double degrees) {
-	f.setZ(f.getZ() + degrees);
-	double theta = Math.toRadians(degrees);
-	double sin = Math.sin(theta);
-	double cos = Math.cos(theta);
-	for (PANode node : b) {
-	    Vector v = node.getOffset();
-	    double x = v.getX();
-	    double y = v.getY();
-	    double z = v.getZ();
-	    v.setX((x * cos) - (y * sin));
-	    v.setY((y * cos) + (x * sin));
-	    v.setZ(z);
-	    node.setOffset(v);
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, f.clone(), f.clone().add(new Vector(0, 0, degrees)));
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    rotZ(degrees);
 	}
     }
     
@@ -367,9 +366,19 @@ public abstract class PAObject {
      * @param degreesZ
      */
     public void setRotation(double degreesX, double degreesY, double degreesZ) {
-	setRotationX(degreesX);
-	setRotationY(degreesY);
-	setRotationZ(degreesZ);
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, f.clone(), new Vector(degreesX, degreesY, degreesZ));
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    rotX(-f.getX());
+	    f.setX(degreesX);
+	    rotX(degreesX);
+	    rotY(-f.getY());
+	    f.setY(degreesY);
+	    rotY(degreesY);
+	    rotZ(-f.getZ());
+	    f.setZ(degreesZ);
+	    rotZ(degreesZ);
+	}
     }
     
     /**
@@ -378,20 +387,12 @@ public abstract class PAObject {
      * @param degrees
      */
     public void setRotationX(double degrees) {
-	f.setX(degrees);
-	double theta = Math.toRadians(degrees);
-	double sin = Math.sin(theta);
-	double cos = Math.cos(theta);
-	for (PANode node : b) {
-	    node.resetOffset();
-	    Vector v = node.getOffset();
-	    double x = v.getX();
-	    double y = v.getY();
-	    double z = v.getZ();
-	    v.setX(x);
-	    v.setY((y * cos) - (z * sin));
-	    v.setZ((z * cos) + (y * sin));
-	    node.setOffset(v);
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, f.clone(), f.clone().setX(degrees));
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    rotX(-f.getX());
+	    f.setX(degrees);
+	    rotX(degrees);
 	}
     }
     
@@ -401,20 +402,12 @@ public abstract class PAObject {
      * @param degrees
      */
     public void setRotationY(double degrees) {
-	f.setY(degrees);
-	double theta = Math.toRadians(degrees);
-	double sin = Math.sin(theta);
-	double cos = Math.cos(theta);
-	for (PANode node : b) {
-	    node.resetOffset();
-	    Vector v = node.getOffset();
-	    double x = v.getX();
-	    double y = v.getY();
-	    double z = v.getZ();
-	    v.setX((x * cos) - (z * sin));
-	    v.setY(y);
-	    v.setZ((z * cos) + (x * sin));
-	    node.setOffset(v);
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, f.clone(), f.clone().setY(degrees));
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    rotY(-f.getY());
+	    f.setY(degrees);
+	    rotY(degrees);
 	}
     }
     
@@ -424,20 +417,12 @@ public abstract class PAObject {
      * @param degrees
      */
     public void setRotationZ(double degrees) {
-	f.setZ(degrees);
-	double theta = Math.toRadians(degrees);
-	double sin = Math.sin(theta);
-	double cos = Math.cos(theta);
-	for (PANode node : b) {
-	    node.resetOffset();
-	    Vector v = node.getOffset();
-	    double x = v.getX();
-	    double y = v.getY();
-	    double z = v.getZ();
-	    v.setX((x * cos) - (y * sin));
-	    v.setY((y * cos) + (x * sin));
-	    v.setZ(z);
-	    node.setOffset(v);
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, f.clone(), f.clone().setZ(degrees));
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    rotZ(-f.getZ());
+	    f.setZ(degrees);
+	    rotZ(degrees);
 	}
     }
     
@@ -451,12 +436,30 @@ public abstract class PAObject {
     }
     
     /**
+     * Get if a point is within the objects hitbox
+     * 
+     * @param vector A Vector
+     * @return boolean
+     */
+    public boolean inHitbox(Vector vector) {
+	Vector max = new Vector(0, 0, 0);
+	Vector min = new Vector(0, 0, 0);
+	for (PANode node : b) {
+	    Vector o = node.getOffset();
+	    max = Vector.getMaximum(max, o);
+	    min = Vector.getMinimum(min, o);
+	}
+	Vector l = a.toVector();
+	return vector.isInAABB(min.add(l), max.add(l));
+    }
+    
+    /**
      * Gets the rotation of this object
      * 
      * @return Vector
      */
     public Vector getRotation() {
-	return f;
+	return f.clone();
     }
     
     /**
@@ -515,5 +518,56 @@ public abstract class PAObject {
 	    node.setOffset(node.getOffset().multiply(size));
 	}
 	c = size;
+    }
+    
+    private void rotX(double deg) {
+	f.setX(f.getX() + deg);
+	double theta = Math.toRadians(deg);
+	double sin = Math.sin(theta);
+	double cos = Math.cos(theta);
+	for (PANode node : b) {
+	    Vector v = node.getOffset();
+	    double x = v.getX();
+	    double y = v.getY();
+	    double z = v.getZ();
+	    v.setX(x);
+	    v.setY((y * cos) - (z * sin));
+	    v.setZ((z * cos) + (y * sin));
+	    node.setOffset(v);
+	}
+    }
+    
+    private void rotY(double deg) {
+	f.setY(f.getY() + deg);
+	double theta = Math.toRadians(deg);
+	double sin = Math.sin(theta);
+	double cos = Math.cos(theta);
+	for (PANode node : b) {
+	    Vector v = node.getOffset();
+	    double x = v.getX();
+	    double y = v.getY();
+	    double z = v.getZ();
+	    v.setX((x * cos) - (z * sin));
+	    v.setY(y);
+	    v.setZ((z * cos) + (x * sin));
+	    node.setOffset(v);
+	}
+    }
+    
+    private void rotZ(double deg) {
+	f.setZ(f.getZ() + deg);
+	double theta = Math.toRadians(deg);
+	double sin = Math.sin(theta);
+	double cos = Math.cos(theta);
+	for (PANode node : b) {
+	    Vector v = node.getOffset();
+	    double x = v.getX();
+	    double y = v.getY();
+	    double z = v.getZ();
+	    v.setX((x * cos) - (y * sin));
+	    v.setY((y * cos) + (x * sin));
+	    v.setZ(z);
+	    node.setOffset(v);
+	}
     }
 }
