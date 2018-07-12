@@ -188,7 +188,7 @@ public class PANode {
     /**
      * Attempts to set the data for this node
      * 
-     * @param value The data value
+     * @param data The data value
      * @return boolean
      */
     public boolean setData(MaterialData data) {
