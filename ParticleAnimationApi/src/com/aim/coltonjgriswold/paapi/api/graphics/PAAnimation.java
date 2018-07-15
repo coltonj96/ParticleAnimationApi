@@ -70,7 +70,7 @@ public class PAAnimation {
      * 
      * @param period Ticks to wait before updating the animation
      */
-    public void start(int period) {
+    public void start(long period) {
 	if (a.size() == 0)
 	    return;
 	b = new BukkitRunnable() {

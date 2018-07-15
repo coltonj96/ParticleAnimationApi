@@ -26,12 +26,8 @@ public abstract class PAObject {
     private PAAction d;
     private Vector e;
     private Vector f;
-    private Vector g;
-    private Vector h;
-    //private Vector i;
-    private double j;
-    private double k;
-    //private double l;
+    private double g;
+    private double h;
     
     /**
      * Where to spawn the center of this new PAObject with a scale of (0.5, 0.5, 0.5)
@@ -39,7 +35,7 @@ public abstract class PAObject {
      * @param location The location
      */
     public PAObject(Location location) {
-	this(location, new HashSet<PANode>(), new Vector(0.5, 0.5, 0.5));
+	this(location, new HashSet<PANode>(), 1.0);
     }
     
     /**
@@ -48,7 +44,7 @@ public abstract class PAObject {
      * @param location The location
      * @param scale
      */
-    public PAObject(Location location, Vector scale) {
+    public PAObject(Location location, double scale) {
 	this(location, new HashSet<PANode>(), scale);
     }
     
@@ -59,18 +55,14 @@ public abstract class PAObject {
      * @param nodes
      * @param scale
      */
-    public PAObject(Location location, Set<PANode> nodes, Vector scale) {
+    public PAObject(Location location, Set<PANode> nodes, double scale) {
 	a = location;
 	b = nodes;
 	c = UUID.randomUUID();
-	e = new Vector(0, 0, 0);
-	f = scale;
-	g = new Vector(0, 0, 0);
-	h = location.toVector();
-	//i = new Vector(0, 0, 0);
-	j = scale.length();
-	k = 0;
-	//l = 0;
+	e = new Vector();
+	f = new Vector();
+	g = scale;
+	h = new Vector(scale, scale, scale).length();
 	update();
     }
     
@@ -82,8 +74,8 @@ public abstract class PAObject {
 	    PANode[] nodes = node.getConnectedNodes().toArray(new PANode[0]);
 	    if (nodes.length > 0) {
 		for (int A = 0; A <= nodes.length - 1; A++) {
-		    for (double B = 0.0; B < (j * b.size()); B++) {
-			Vector v = lerp(node.getOffset(), nodes[(A + 1) % nodes.length].getOffset(), B / (j * b.size()));
+		    for (double B = 0.0; B < (h * b.size()); B++) {
+			Vector v = lerp(node.getOffset(), nodes[(A + 1) % nodes.length].getOffset(), B / (h * b.size()));
 			if (node.isColorable() && node.hasColor()) {
 			    double red = ((node.getColor().getRed() + 1.0) / 255.0);
 			    double green = node.getColor().getGreen() / 255.0;
@@ -111,17 +103,6 @@ public abstract class PAObject {
 		}
 	    }
 	}
-	if (k < 1 && !h.equals(new Vector(0, 0, 0))) {
-	    Vector start = new Vector(0, 0, 0);
-	    Vector end = h.clone().subtract(a.toVector());
-	    a.add(start.clone().add(end.clone().subtract(start.clone()).multiply(k)));
-	    k += 1.0 / start.distance(end);
-	} else {
-	    if (k != 0) {
-		k = 0;
-	    	h = new Vector(0, 0, 0);
-	    }
-	}
     }
     
     /**
@@ -130,7 +111,7 @@ public abstract class PAObject {
      * @return Vector
      */
     public Vector getCenter() {
-	Vector v = new Vector(0, 0, 0);
+	Vector v = new Vector();
 	for (PANode node : b) {
 	    v.add(node.getOffset());
 	}
@@ -150,10 +131,10 @@ public abstract class PAObject {
     /**
      * Gets the current scale of this object
      * 
-     * @return Vector
+     * @return double
      */
-    public Vector getscale() {
-	return f.clone();
+    public double getscale() {
+	return g;
     }
     
     /**
@@ -255,15 +236,6 @@ public abstract class PAObject {
      */
     public UUID getUuid() {
 	return c;
-    }
-    
-    /**
-     * Gets the target location of this object
-     * 
-     * @return Vector
-     */
-    public Vector getTarget() {
-	return h.clone();
     }
     
     /**
@@ -491,16 +463,6 @@ public abstract class PAObject {
     }
     
     /**
-     * Sets the target location of this object
-     * 
-     * @param vector A vector
-     */
-    public void setTarget(Vector vector) {
-	h = vector;
-	k = 0;
-    }
-    
-    /**
      * Get the action for this object
      * 
      * @return PAAction
@@ -515,7 +477,7 @@ public abstract class PAObject {
      * @return Vector
      */
     public Vector getHitbox() {
-	return g.clone();
+	return f.clone();
     }
     
     /**
@@ -524,7 +486,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getWidth() {
-	return g.getX();
+	return f.getX();
     }
     
     /**
@@ -533,7 +495,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getHeight() {
-	return g.getY();
+	return f.getY();
     }
     
     /**
@@ -542,9 +504,9 @@ public abstract class PAObject {
      * @return double
      */
     public double getLength() {
-	return g.getZ();
+	return f.getZ();
     }
-    
+
     /**
      * Get if a point is within the bounds of this objects hitbox
      * 
@@ -552,8 +514,8 @@ public abstract class PAObject {
      * @return boolean
      */
     public boolean inHitbox(Vector vector) {
-	Vector max = new Vector(0, 0, 0);
-	Vector min = new Vector(0, 0, 0);
+	Vector max = new Vector();
+	Vector min = new Vector();
 	for (PANode node : b) {
 	    Vector o = node.getOffset();
 	    max = Vector.getMaximum(max, o);
@@ -569,8 +531,8 @@ public abstract class PAObject {
      * @return Set<Entity>
      */
     public List<Entity> getEntities() {
-	Vector h = g.clone().divide(new Vector(2, 2, 2));
-	return (List<Entity>) a.getWorld().getNearbyEntities(a, h.getX(), h.getY(), h.getZ());
+	Vector v = f.clone().divide(new Vector(2, 2, 2));
+	return (List<Entity>) a.getWorld().getNearbyEntities(a, v.getX(), v.getY(), v.getZ());
     }
     
     /**
@@ -580,16 +542,16 @@ public abstract class PAObject {
      */
     public List<Block> getBlocks() {
 	List<Block> blocks = new ArrayList<Block>();
-	Vector max = new Vector(0, 0, 0);
-	Vector min = new Vector(0, 0, 0);
+	Vector max = new Vector();
+	Vector min = new Vector();
 	for (PANode node : b) {
 	    Vector o = node.getOffset();
 	    max = Vector.getMaximum(max, o);
 	    min = Vector.getMinimum(min, o);
 	}
-	Vector l = a.toVector();
-	min.add(l);
-	max.add(l);
+	Vector v = a.toVector();
+	min.add(v);
+	max.add(v);
 	for (int x = min.getBlockX(); x < max.getBlockX(); x++) {
 	    for (int y = min.getBlockY(); y < max.getBlockY(); y++) {
 		for (int z = min.getBlockZ(); z < max.getBlockZ(); z++) {
@@ -661,18 +623,18 @@ public abstract class PAObject {
      * 
      * @param scale The scale
      */
-    public void setScale(Vector scale) {
+    public void setScale(double scale) {
 	normalize();
 	for (PANode node : b) {
-	    node.setOffset(node.getOffset().multiply(scale.divide(new Vector(2, 2, 2))));
+	    node.setOffset(node.getOffset().multiply(scale));
 	}
-	f = scale;
-	j = scale.length();
+	g = scale;
+	h = new Vector(scale, scale, scale).length();
 	update();
     }
     
     private void rotX(double deg) {
-	e.setX(e.getX() + deg);
+	e.setX((e.getX() + deg) % 360.0);
 	double theta = Math.toRadians(deg);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -690,7 +652,7 @@ public abstract class PAObject {
     }
     
     private void rotY(double deg) {
-	e.setY(e.getY() + deg);
+	e.setY((e.getY() + deg) % 360.0);
 	double theta = Math.toRadians(deg);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -708,7 +670,7 @@ public abstract class PAObject {
     }
     
     private void rotZ(double deg) {
-	e.setZ(e.getZ() + deg);
+	e.setZ((e.getZ() + deg) % 360.0);
 	double theta = Math.toRadians(deg);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -726,13 +688,13 @@ public abstract class PAObject {
     }
     
     private void update() {
-	Vector max = new Vector(0, 0, 0);
-	Vector min = new Vector(0, 0, 0);
+	Vector max = new Vector();
+	Vector min = new Vector();
 	for (PANode node : b) {
 	    Vector o = node.getOffset();
 	    max = Vector.getMaximum(max, o);
 	    min = Vector.getMinimum(min, o);
 	}
-	g = max.subtract(min);
+	f = max.subtract(min);
     }
 }
