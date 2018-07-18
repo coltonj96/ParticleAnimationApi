@@ -98,4 +98,13 @@ public class PAAnimation {
 	if (b != null && !b.isCancelled())
 	    b.cancel();
     }
+    
+    /**
+     * Gets if the animation is running
+     * 
+     * @return boolean
+     */
+    public boolean isRunning() {
+	return !b.isCancelled();
+    }
 }

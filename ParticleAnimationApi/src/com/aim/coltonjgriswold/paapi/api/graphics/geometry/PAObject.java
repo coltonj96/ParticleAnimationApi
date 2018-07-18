@@ -15,6 +15,7 @@ import org.bukkit.util.Vector;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectMoveEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectMoveRelativeEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectRotateEvent;
+import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectVelocityEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAAction;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PANode;
 
@@ -24,10 +25,8 @@ public abstract class PAObject {
     private Set<PANode> b;
     private UUID c;
     private PAAction d;
-    private Vector e;
-    private Vector f;
-    private double g;
-    private double h;
+    private Vector[] e;
+    private double[] f;
     
     /**
      * Where to spawn the center of this new PAObject with a scale of (0.5, 0.5, 0.5)
@@ -59,10 +58,8 @@ public abstract class PAObject {
 	a = location;
 	b = nodes;
 	c = UUID.randomUUID();
-	e = new Vector();
-	f = new Vector();
-	g = scale;
-	h = new Vector(scale, scale, scale).length();
+	e = new Vector[] { new Vector(), new Vector(), new Vector() };
+	f = new double[] { scale, Math.sqrt(3 * (scale * scale)) };
 	update();
     }
     
@@ -74,8 +71,8 @@ public abstract class PAObject {
 	    PANode[] nodes = node.getConnectedNodes().toArray(new PANode[0]);
 	    if (nodes.length > 0) {
 		for (int A = 0; A <= nodes.length - 1; A++) {
-		    for (double B = 0.0; B < (h * b.size()); B++) {
-			Vector v = lerp(node.getOffset(), nodes[(A + 1) % nodes.length].getOffset(), B / (h * b.size()));
+		    for (double B = 0.0; B < (f[1] * b.size()); B++) {
+			Vector v = lerp(node.getOffset(), nodes[(A + 1) % nodes.length].getOffset(), B / (f[1] * b.size()));
 			if (node.isColorable() && node.hasColor()) {
 			    double red = ((node.getColor().getRed() + 1.0) / 255.0);
 			    double green = node.getColor().getGreen() / 255.0;
@@ -101,6 +98,14 @@ public abstract class PAObject {
 		} else {
 		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(node.getOffset()), 0, 0, 0, 0, 1.0);
 		}
+	    }
+	}
+	if (hasVelocity()) {
+	    PAObjectVelocityEvent event = new PAObjectVelocityEvent(this, e[2].clone());
+	    Bukkit.getServer().getPluginManager().callEvent(event);
+	    if (!event.isCancelled()) {
+		a.add(e[2]);
+		e[2] = e[2].add(new Vector().subtract(e[2]).multiply(0.196));
 	    }
 	}
     }
@@ -134,7 +139,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getscale() {
-	return g;
+	return f[0];
     }
     
     /**
@@ -343,7 +348,7 @@ public abstract class PAObject {
      * @param degreesZ
      */
     public void rotate(double degreesX, double degreesY, double degreesZ) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e.clone(), e.clone().add(new Vector(degreesX, degreesY, degreesZ)));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().add(new Vector(degreesX, degreesY, degreesZ)));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
 	    rotX(degreesX);
@@ -358,7 +363,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateX(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e.clone(), e.clone().add(new Vector(degrees, 0, 0)));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().add(new Vector(degrees, 0, 0)));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
 	    rotX(degrees);
@@ -371,7 +376,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateY(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e.clone(), e.clone().add(new Vector(0, degrees, 0)));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().add(new Vector(0, degrees, 0)));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
 	    rotY(degrees);
@@ -384,7 +389,7 @@ public abstract class PAObject {
      * @param degrees
      */
     public void rotateZ(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e.clone(), e.clone().add(new Vector(0, 0, degrees)));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().add(new Vector(0, 0, degrees)));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
 	    rotZ(degrees);
@@ -408,14 +413,15 @@ public abstract class PAObject {
      * @param degreesZ
      */
     public void setRotation(double degreesX, double degreesY, double degreesZ) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e.clone(), new Vector(degreesX, degreesY, degreesZ));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), new Vector(degreesX, degreesY, degreesZ));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
-	    rotX(-e.getX());
+	    Vector r = e[0];
+	    rotX(-r.getX());
 	    rotX(degreesX);
-	    rotY(-e.getY());
+	    rotY(-r.getY());
 	    rotY(degreesY);
-	    rotZ(-e.getZ());
+	    rotZ(-r.getZ());
 	    rotZ(degreesZ);
 	}
     }
@@ -426,10 +432,10 @@ public abstract class PAObject {
      * @param degrees
      */
     public void setRotationX(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e.clone(), e.clone().setX(degrees));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().setX(degrees));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
-	    rotX(-e.getX());
+	    rotX(-e[0].getX());
 	    rotX(degrees);
 	}
     }
@@ -440,10 +446,10 @@ public abstract class PAObject {
      * @param degrees
      */
     public void setRotationY(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e.clone(), e.clone().setY(degrees));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().setY(degrees));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
-	    rotY(-e.getY());
+	    rotY(-e[0].getY());
 	    rotY(degrees);
 	}
     }
@@ -454,10 +460,10 @@ public abstract class PAObject {
      * @param degrees
      */
     public void setRotationZ(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e.clone(), e.clone().setZ(degrees));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().setZ(degrees));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
-	    rotZ(-e.getZ());
+	    rotZ(-e[0].getZ());
 	    rotZ(degrees);
 	}
     }
@@ -477,7 +483,7 @@ public abstract class PAObject {
      * @return Vector
      */
     public Vector getHitbox() {
-	return f.clone();
+	return e[1].clone();
     }
     
     /**
@@ -486,7 +492,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getWidth() {
-	return f.getX();
+	return e[1].getX();
     }
     
     /**
@@ -495,7 +501,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getHeight() {
-	return f.getY();
+	return e[1].getY();
     }
     
     /**
@@ -504,7 +510,60 @@ public abstract class PAObject {
      * @return double
      */
     public double getLength() {
-	return f.getZ();
+	return e[1].getZ();
+    }
+    
+    public Vector getVelocity() {
+	return e[2].clone();
+    }
+    
+    /**
+     * Sets this objects velocity
+     * 
+     * @param velocity A Vector
+     */
+    public void setVelocity(Vector velocity) {
+	e[2] = velocity;
+    }
+    
+    /**
+     * Sets this objects velocity
+     * 
+     * @param x X axis velocity
+     * @param y Y axis velocity
+     * @param z Z axis velocity
+     */
+    public void setVelocity(double x, double y, double z) {
+	e[2] = new Vector(x, y, z);
+    }
+    
+    /**
+     * Adds velocity to this object
+     * 
+     * @param velocity A Vector
+     */
+    public void addVelocity(Vector velocity) {
+	e[2].add(velocity);
+    }
+    
+    /**
+     * Adds velocity to this object
+     * 
+     * @param x X axis velocity
+     * @param y Y axis velocity
+     * @param z Z axis velocity
+     */
+    public void addVelocity(double x, double y, double z) {
+	e[2].add(new Vector(x, y, z));
+    }
+    
+    /**
+     * Gets if this object has a velocity
+     * 
+     * @return boolean
+     */
+    public boolean hasVelocity() {
+	return e[2].lengthSquared() > 0.0;
     }
 
     /**
@@ -531,7 +590,7 @@ public abstract class PAObject {
      * @return Set<Entity>
      */
     public List<Entity> getEntities() {
-	Vector v = f.clone().divide(new Vector(2, 2, 2));
+	Vector v = e[1].clone().divide(new Vector(2, 2, 2));
 	return (List<Entity>) a.getWorld().getNearbyEntities(a, v.getX(), v.getY(), v.getZ());
     }
     
@@ -570,7 +629,7 @@ public abstract class PAObject {
      * @return Vector
      */
     public Vector getRotation() {
-	return e.clone();
+	return e[0].clone();
     }
     
     /**
@@ -579,7 +638,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getRotationX() {
-	return e.getX();
+	return e[0].getX();
     }
     
     /**
@@ -588,7 +647,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getRotationY() {
-	return e.getY();
+	return e[0].getY();
     }
     
     /**
@@ -597,7 +656,7 @@ public abstract class PAObject {
      * @return double
      */
     public double getRotationZ() {
-	return e.getZ();
+	return e[0].getZ();
     }
     
     /**
@@ -628,13 +687,12 @@ public abstract class PAObject {
 	for (PANode node : b) {
 	    node.setOffset(node.getOffset().multiply(scale));
 	}
-	g = scale;
-	h = new Vector(scale, scale, scale).length();
+	f = new double[] { scale, Math.sqrt(3 * (scale * scale)) };
 	update();
     }
     
     private void rotX(double deg) {
-	e.setX((e.getX() + deg) % 360.0);
+	e[0].setX((e[0].getX() + deg) % 360.0);
 	double theta = Math.toRadians(deg);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -652,7 +710,7 @@ public abstract class PAObject {
     }
     
     private void rotY(double deg) {
-	e.setY((e.getY() + deg) % 360.0);
+	e[0].setY((e[0].getY() + deg) % 360.0);
 	double theta = Math.toRadians(deg);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -670,7 +728,7 @@ public abstract class PAObject {
     }
     
     private void rotZ(double deg) {
-	e.setZ((e.getZ() + deg) % 360.0);
+	e[0].setZ((e[0].getZ() + deg) % 360.0);
 	double theta = Math.toRadians(deg);
 	double sin = Math.sin(theta);
 	double cos = Math.cos(theta);
@@ -695,6 +753,6 @@ public abstract class PAObject {
 	    max = Vector.getMaximum(max, o);
 	    min = Vector.getMinimum(min, o);
 	}
-	f = max.subtract(min);
+	e[1] = max.subtract(min);
     }
 }
