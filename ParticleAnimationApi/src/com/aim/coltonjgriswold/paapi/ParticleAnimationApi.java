@@ -11,4 +11,5 @@ public class ParticleAnimationApi extends JavaPlugin {
     public static ParticleAnimationApi instance() {
 	return getPlugin(ParticleAnimationApi.class);
     }
+    
 }

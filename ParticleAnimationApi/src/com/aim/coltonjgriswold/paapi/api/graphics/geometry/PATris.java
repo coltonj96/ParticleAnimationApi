@@ -1,10 +1,9 @@
 package com.aim.coltonjgriswold.paapi.api.graphics.geometry;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.util.Vector;
-
-import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAColor;
 
 public class PATris extends PAPoly {
 
@@ -31,7 +30,7 @@ public class PATris extends PAPoly {
      * @param p3 Local point around location
      * @param color Color of the particle
      */
-    public PATris(Particle type, Location location, Vector p1, Vector p2, Vector p3, PAColor color) {
+    public PATris(Particle type, Location location, Vector p1, Vector p2, Vector p3, Color color) {
 	super(type, location, color, p1, p2, p3);
     }
 }

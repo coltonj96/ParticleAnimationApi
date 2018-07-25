@@ -1,10 +1,10 @@
 package com.aim.coltonjgriswold.paapi.api.graphics.geometry;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.util.Vector;
 
-import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAColor;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PANode;
 
 public class PAPoly extends PAObject {
@@ -28,7 +28,7 @@ public class PAPoly extends PAObject {
      * @param color Particle color
      * @param vertices Vertices of this polygon
      */
-    public PAPoly(Particle type, Location location, PAColor color, Vector... vertices) {
+    public PAPoly(Particle type, Location location, Color color, Vector... vertices) {
 	super(location);
 	PANode[] nodes = new PANode[vertices.length];
 	for (int i = 0; i <= vertices.length - 1; i++) {

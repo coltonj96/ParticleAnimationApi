@@ -10,5 +10,4 @@ public abstract class PAAction {
      * @param object The object this action belongs to
      */
     abstract public void run(PAObject object);
-
 }

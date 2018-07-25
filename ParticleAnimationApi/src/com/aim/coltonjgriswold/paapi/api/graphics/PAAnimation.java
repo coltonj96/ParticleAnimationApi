@@ -3,10 +3,12 @@ package com.aim.coltonjgriswold.paapi.api.graphics;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import com.aim.coltonjgriswold.paapi.ParticleAnimationApi;
+import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectAnimateEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.geometry.PAObject;
 
 public class PAAnimation {
@@ -70,7 +72,7 @@ public class PAAnimation {
      * 
      * @param period Ticks to wait before updating the animation
      */
-    public void start(long period) {
+    public void start(final long period) {
 	if (a.size() == 0)
 	    return;
 	b = new BukkitRunnable() {
@@ -82,9 +84,13 @@ public class PAAnimation {
 		    return;
 		}
 		for (PAObject object : a) {
-		    if (object.getAction() != null)
-			object.getAction().run(object);
-		    object.draw();
+		    PAObjectAnimateEvent event = new PAObjectAnimateEvent(object, period);
+		    Bukkit.getServer().getPluginManager().callEvent(event);
+		    if (!event.isCancelled()) {
+			if (object.getAction() != null)
+			    object.getAction().run(object);
+			object.draw();
+		    }
 		}
 	    }
 	    

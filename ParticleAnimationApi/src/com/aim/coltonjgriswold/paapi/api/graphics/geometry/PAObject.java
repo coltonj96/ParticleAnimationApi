@@ -1,25 +1,41 @@
 package com.aim.coltonjgriswold.paapi.api.graphics.geometry;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.util.BlockIterator;
 import org.bukkit.util.Vector;
 
+import com.aim.coltonjgriswold.paapi.ParticleAnimationApi;
+import com.aim.coltonjgriswold.paapi.api.graphics.enums.PAButton;
+import com.aim.coltonjgriswold.paapi.api.graphics.events.PAEntityInteractEvent;
+import com.aim.coltonjgriswold.paapi.api.graphics.events.PALivingEntityInteractEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectMoveEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectMoveRelativeEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectRotateEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectVelocityEvent;
+import com.aim.coltonjgriswold.paapi.api.graphics.events.PAPlayerClickEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAAction;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PANode;
 
-public abstract class PAObject {
+public abstract class PAObject implements Listener {
     
     private Location a;
     private Set<PANode> b;
@@ -27,6 +43,12 @@ public abstract class PAObject {
     private PAAction d;
     private Vector[] e;
     private double[] f;
+    private boolean g;
+    private static Map<UUID, PAObject> objects;
+    
+    static {
+	objects = new HashMap<UUID, PAObject>();
+    }
     
     /**
      * Where to spawn the center of this new PAObject with a scale of (0.5, 0.5, 0.5)
@@ -60,13 +82,50 @@ public abstract class PAObject {
 	c = UUID.randomUUID();
 	e = new Vector[] { new Vector(), new Vector(), new Vector() };
 	f = new double[] { scale, Math.sqrt(3 * (scale * scale)) };
+	g = false;
 	update();
+	objects.put(c, this);
+	Bukkit.getServer().getPluginManager().registerEvents(this, ParticleAnimationApi.instance());
+    }
+    
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntityInteract(PlayerInteractEvent event) {
+	Player player = event.getPlayer();
+	Action action = event.getAction();
+	if (action.equals(Action.LEFT_CLICK_AIR) || action.equals(Action.LEFT_CLICK_BLOCK) || action.equals(Action.RIGHT_CLICK_AIR) || action.equals(Action.RIGHT_CLICK_BLOCK)) {
+	    if (!a.getWorld().equals(player.getWorld()))
+		return;
+	    if (!g)
+		return;
+	    BlockIterator iter = new BlockIterator(player, (int) player.getEyeLocation().subtract(a).length());
+	    Set<Vector> vecs = vectors();
+	    while (iter.hasNext()) {
+		Vector vec = iter.next().getLocation().toVector();
+		for (Vector v : vecs) {
+		    if (vec.clone().subtract(v).length() < 1.0) {
+			PAButton button = null;
+			if (action.equals(Action.LEFT_CLICK_AIR) || action.equals(Action.LEFT_CLICK_BLOCK))
+			    button = PAButton.LEFT;
+			if (action.equals(Action.RIGHT_CLICK_AIR) || action.equals(Action.RIGHT_CLICK_BLOCK))
+			    button = PAButton.RIGHT;
+			PAPlayerClickEvent e = new PAPlayerClickEvent(this, player, button);
+			Bukkit.getServer().getPluginManager().callEvent(e);
+			if (!e.isCancelled()) {
+			    event.setCancelled(true);
+			    return;
+			}
+		    }
+		}
+	    }
+	}
     }
     
     /**
      * Draw all the nodes once per call
      */
     public void draw() {
+	if (!g)
+	    return;
 	for (PANode node : b) {
 	    PANode[] nodes = node.getConnectedNodes().toArray(new PANode[0]);
 	    if (nodes.length > 0) {
@@ -74,29 +133,22 @@ public abstract class PAObject {
 		    for (double B = 0.0; B < (f[1] * b.size()); B++) {
 			Vector v = lerp(node.getOffset(), nodes[(A + 1) % nodes.length].getOffset(), B / (f[1] * b.size()));
 			if (node.isColorable() && node.hasColor()) {
-			    double red = ((node.getColor().getRed() + 1.0) / 255.0);
-			    double green = node.getColor().getGreen() / 255.0;
-			    double blue = node.getColor().getBlue() / 255.0;
-			    if (node.canSetData() && node.hasData())
-				a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, red, green, blue, 1.0, node.getData());
-			    else
-				a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, red, green, blue, 1.0);
-			} else {
-			    if (node.canSetData() && node.hasData())
-				a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, 0.0, node.getData());
-			    else
-				a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, 0.0);
+			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, new Particle.DustOptions(node.getColor(), 0.5f));
+			} else if (node.canSetData() && node.hasData()) {
+			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, node.getData());
+			} else{
+			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0);
 			}
 		    }
 		}
 	    } else {
+		Vector v = node.getOffset().multiply(f[0]);
 		if (node.isColorable() && node.hasColor()) {
-		    double red = ((node.getColor().getRed() + 1.0) / 255.0);
-		    double green = node.getColor().getGreen() / 255.0;
-		    double blue = node.getColor().getBlue() / 255.0;
-		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(node.getOffset()), 0, red, green, blue, 1.0);
-		} else {
-		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(node.getOffset()), 0, 0, 0, 0, 1.0);
+		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, new Particle.DustOptions(node.getColor(), 0.5f));
+		} else if (node.canSetData() && node.hasData()) {
+		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, node.getData());
+		} else{
+		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0);
 		}
 	    }
 	}
@@ -105,7 +157,24 @@ public abstract class PAObject {
 	    Bukkit.getServer().getPluginManager().callEvent(event);
 	    if (!event.isCancelled()) {
 		a.add(e[2]);
-		e[2] = e[2].add(new Vector().subtract(e[2]).multiply(0.196));
+		e[2] = e[2].add(new Vector().subtract(e[2]).multiply(0.1635));
+	    }
+	}
+	List<Entity> entities = getEntities();
+	if (!entities.isEmpty()) {
+	    for (Entity entity : entities) {
+		{
+		    PAEntityInteractEvent event = new PAEntityInteractEvent(this, entity);
+		    Bukkit.getServer().getPluginManager().callEvent(event);
+		}
+		if (entity instanceof LivingEntity) {
+		    PALivingEntityInteractEvent event = new PALivingEntityInteractEvent(this, (LivingEntity) entity);
+		    Bukkit.getServer().getPluginManager().callEvent(event);
+		}
+		if (entity instanceof Player) {
+		    PALivingEntityInteractEvent event = new PALivingEntityInteractEvent(this, (Player) entity);
+		    Bukkit.getServer().getPluginManager().callEvent(event);
+		}
 	    }
 	}
     }
@@ -171,8 +240,26 @@ public abstract class PAObject {
      * 
      * @return Set<PANode>
      */
-    protected Set<PANode> getNodes() {
+    public Set<PANode> getNodes() {
 	return b;
+    }
+    
+    /**
+     * Sets this object to be visible or not
+     * 
+     * @param visible Is this object visible?
+     */
+    public void setVisible(boolean visible) {
+	g = visible;
+    }
+    
+    /**
+     * Gets if this object is visible
+     * 
+     * @return boolean
+     */
+    public boolean isVisible() {
+	return g;
     }
     
     /**
@@ -513,6 +600,11 @@ public abstract class PAObject {
 	return e[1].getZ();
     }
     
+    /**
+     * Gets this objects velocity
+     * 
+     * @return Vector
+     */
     public Vector getVelocity() {
 	return e[2].clone();
     }
@@ -691,6 +783,18 @@ public abstract class PAObject {
 	update();
     }
     
+    /**
+     * Gets a PAObject by id
+     * 
+     * @param id The Uuid of the object
+     * @return PAObject
+     */
+    public static PAObject getByUuid(UUID id) {
+	if (objects.containsKey(id))
+	    return objects.get(id);
+	return null;
+    }
+    
     private void rotX(double deg) {
 	e[0].setX((e[0].getX() + deg) % 360.0);
 	double theta = Math.toRadians(deg);
@@ -743,6 +847,29 @@ public abstract class PAObject {
 	    node.setOffset(v);
 	}
 	update();
+    }
+    
+    private Set<Vector> vectors() {
+	Set<Vector> blocks = new HashSet<Vector>();
+	Vector max = new Vector();
+	Vector min = new Vector();
+	for (PANode node : b) {
+	    Vector o = node.getOffset();
+	    max = Vector.getMaximum(max, o);
+	    min = Vector.getMinimum(min, o);
+	}
+	Vector v = a.toVector();
+	min.add(v);
+	max.add(v);
+	for (int x = min.getBlockX(); x < max.getBlockX(); x++) {
+	    for (int y = min.getBlockY(); y < max.getBlockY(); y++) {
+		for (int z = min.getBlockZ(); z < max.getBlockZ(); z++) {
+		    blocks.add(new Vector(x, y, z));
+		}
+	    }
+	}
+	blocks.add(a.toVector());
+	return blocks;
     }
     
     private void update() {

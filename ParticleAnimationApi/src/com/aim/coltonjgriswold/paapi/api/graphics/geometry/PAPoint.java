@@ -1,10 +1,9 @@
 package com.aim.coltonjgriswold.paapi.api.graphics.geometry;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.util.Vector;
-
-import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAColor;
 
 public class PAPoint extends PAPoly {
 
@@ -27,7 +26,7 @@ public class PAPoint extends PAPoly {
      * @param offset Local offset around location
      * @param color Color of the particle
      */
-    public PAPoint(Particle type, Location location, Vector offset, PAColor color) {
+    public PAPoint(Particle type, Location location, Vector offset, Color color) {
 	super(type, location, color, offset);
     }
 }

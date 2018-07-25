@@ -1,10 +1,14 @@
 package com.aim.coltonjgriswold.paapi.api.graphics.utilities;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
+import org.bukkit.Color;
 import org.bukkit.Particle;
-import org.bukkit.material.MaterialData;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Vector;
 
 public class PANode {
@@ -12,9 +16,15 @@ public class PANode {
     private Particle a;
     private Vector b;
     private Vector c;
-    private PAColor d;
+    private Color d;
     private Set<PANode> e;
-    private MaterialData f;
+    private BlockData f;
+    private UUID g;
+    private static Map<UUID, PANode> h;
+    
+    static {
+	h = new HashMap<UUID, PANode>();
+    }
     
     /**
      * Utility class used to hold information about object gemoetry
@@ -27,6 +37,8 @@ public class PANode {
 	b = offset;
 	c = offset;
 	e = new HashSet<PANode>();
+	g = UUID.randomUUID();
+	h.put(g, this);
     }
     
     /**
@@ -88,7 +100,7 @@ public class PANode {
      * 
      * @return PAColor or null
      */
-    public PAColor getColor() {
+    public Color getColor() {
 	return d;
     }
     
@@ -124,8 +136,17 @@ public class PANode {
      * 
      * @return Integer
      */
-    public MaterialData getData() {
+    public BlockData getData() {
 	return f;
+    }
+    
+    /**
+     * Gets the uuid of this node
+     * 
+     * @return UUID
+     */
+    public UUID getUuid() {
+	return g;
     }
     
     /**
@@ -161,7 +182,7 @@ public class PANode {
      * @return boolean
      */
     public boolean isColorable() {
-	return a.equals(Particle.SPELL_MOB) || a.equals(Particle.SPELL_MOB_AMBIENT) || a.equals(Particle.REDSTONE);
+	return a.equals(Particle.REDSTONE);
     }
     
     /**
@@ -177,7 +198,7 @@ public class PANode {
      * @param color PAColor to use
      * @return boolean
      */
-    public boolean setColor(PAColor color) {
+    public boolean setColor(Color color) {
 	if (isColorable()) {
 	    d = color;
 	    return true;
@@ -191,7 +212,7 @@ public class PANode {
      * @param data The data value
      * @return boolean
      */
-    public boolean setData(MaterialData data) {
+    public boolean setData(BlockData data) {
 	if (canSetData()) {
 	    f = data;
 	    return true;
@@ -215,5 +236,17 @@ public class PANode {
      */
     public void setOffset(Vector offset) {
 	b = offset;
+    }
+    
+    /**
+     * Gets a PANode by id
+     * 
+     * @param id The Uuid
+     * @return PANode
+     */
+    public static PANode getByUuid(UUID id) {
+	if (h.containsKey(id))
+	    return h.get(id);
+	return null;
     }
 }
