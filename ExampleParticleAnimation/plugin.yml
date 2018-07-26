@@ -2,4 +2,5 @@ name: ExampleParticleAnimation
 author: 'Colton Griswold'
 main: com.aim.coltonjgriswold.example.ExampleParticleAnimation
 version: 0.0.1
+api-version: 1.13
 depend: [ParticleAnimationApi]
