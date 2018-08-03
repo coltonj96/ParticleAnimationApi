@@ -6,15 +6,18 @@ import com.aim.coltonjgriswold.paapi.api.graphics.enums.PAButton;
 import com.aim.coltonjgriswold.paapi.api.graphics.geometry.PAObject;
 
 public class PAPlayerClickEvent extends PAPlayerInteractEvent {
-    
+
     private PAButton a;
 
     /**
      * Called when a player clicks on an object
      * 
-     * @param object The object
-     * @param player The player
-     * @param button The button
+     * @param object
+     *            The object
+     * @param player
+     *            The player
+     * @param button
+     *            The button
      */
     public PAPlayerClickEvent(PAObject object, Player player, PAButton button) {
 	super(object, player);

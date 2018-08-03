@@ -7,7 +7,8 @@ public abstract class PAAction {
     /**
      * Actions to run upon update of the object in an animation
      * 
-     * @param object The object this action belongs to
+     * @param object
+     *            The object this action belongs to
      */
     abstract public void run(PAObject object);
 }

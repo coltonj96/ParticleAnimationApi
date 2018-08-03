@@ -5,11 +5,12 @@ import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PANode;
 public class PANodeEvent extends PAEvent {
 
     private PANode a;
-    
+
     /**
      * An event relating to a node
      * 
-     * @param node The node
+     * @param node
+     *            The node
      */
     public PANodeEvent(PANode node) {
 	a = node;

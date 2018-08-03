@@ -12,7 +12,7 @@ import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectAnimateEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.geometry.PAObject;
 
 public class PAAnimation {
-    
+
     private Set<PAObject> a;
     private BukkitTask b;
 
@@ -26,7 +26,8 @@ public class PAAnimation {
     /**
      * Add objects to this animation
      * 
-     * @param objects Objects to add
+     * @param objects
+     *            Objects to add
      */
     public void addObjects(PAObject... objects) {
 	for (PAObject object : objects) {
@@ -34,21 +35,23 @@ public class PAAnimation {
 		a.add(object);
 	}
     }
-    
+
     /**
      * Add an object to this animation
      * 
-     * @param object Object to add
+     * @param object
+     *            Object to add
      */
     public void addObject(PAObject object) {
 	if (!a.contains(object))
 	    a.add(object);
     }
-    
+
     /**
      * Remove objects from this animation
      * 
-     * @param objects Objects to remove
+     * @param objects
+     *            Objects to remove
      */
     public void removeObjects(PAObject... objects) {
 	for (PAObject object : objects) {
@@ -56,27 +59,29 @@ public class PAAnimation {
 		a.remove(object);
 	}
     }
-    
+
     /**
      * Remove an object from this animation
      * 
-     * @param object Object to remove
+     * @param object
+     *            Object to remove
      */
     public void removeObject(PAObject object) {
 	if (a.contains(object))
 	    a.remove(object);
     }
-    
+
     /**
      * Start running the animation
      * 
-     * @param period Ticks to wait before updating the animation
+     * @param period
+     *            Ticks to wait before updating the animation
      */
     public void start(final long period) {
 	if (a.size() == 0)
 	    return;
 	b = new BukkitRunnable() {
-	    
+
 	    @Override
 	    public void run() {
 		if (a.size() == 0) {
@@ -93,10 +98,10 @@ public class PAAnimation {
 		    }
 		}
 	    }
-	    
+
 	}.runTaskTimer(ParticleAnimationApi.instance(), 0, period);
     }
-    
+
     /**
      * Stops the animation
      */
@@ -104,7 +109,7 @@ public class PAAnimation {
 	if (b != null && !b.isCancelled())
 	    b.cancel();
     }
-    
+
     /**
      * Gets if the animation is running
      * 

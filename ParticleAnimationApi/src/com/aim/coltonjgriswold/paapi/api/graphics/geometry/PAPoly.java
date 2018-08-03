@@ -12,21 +12,28 @@ public class PAPoly extends PAObject {
     /**
      * Create a Polygon
      * 
-     * @param type Particle type
-     * @param location Location in world
-     * @param vertices Vertices of this polygon
+     * @param type
+     *            Particle type
+     * @param location
+     *            Location in world
+     * @param vertices
+     *            Vertices of this polygon
      */
     public PAPoly(Particle type, Location location, Vector... vertices) {
 	this(type, location, null, vertices);
     }
-    
+
     /**
      * Create a Polygon
      * 
-     * @param type Particle type
-     * @param location Location in world
-     * @param color Particle color
-     * @param vertices Vertices of this polygon
+     * @param type
+     *            Particle type
+     * @param location
+     *            Location in world
+     * @param color
+     *            Particle color
+     * @param vertices
+     *            Vertices of this polygon
      */
     public PAPoly(Particle type, Location location, Color color, Vector... vertices) {
 	super(location);

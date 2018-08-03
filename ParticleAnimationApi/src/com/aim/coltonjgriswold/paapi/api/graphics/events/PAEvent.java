@@ -5,14 +5,14 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 public class PAEvent extends Event implements Cancellable {
-    
+
     private static final HandlerList handlers = new HandlerList();
     protected boolean cancelled;
-    
+
     public PAEvent() {
 	cancelled = false;
     }
-    
+
     public static HandlerList getHandlerList() {
 	return handlers;
     }

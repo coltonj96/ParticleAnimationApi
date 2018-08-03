@@ -5,16 +5,19 @@ import org.bukkit.util.Vector;
 import com.aim.coltonjgriswold.paapi.api.graphics.geometry.PAObject;
 
 public class PAObjectRotateEvent extends PAObjectEvent {
-    
+
     private Vector a;
     private Vector b;
-    
+
     /**
      * Called when an object is rotated
      * 
-     * @param object The object
-     * @param from The old rotation
-     * @param to The new rotation
+     * @param object
+     *            The object
+     * @param from
+     *            The old rotation
+     * @param to
+     *            The new rotation
      */
     public PAObjectRotateEvent(PAObject object, Vector from, Vector to) {
 	super(object);
@@ -32,7 +35,7 @@ public class PAObjectRotateEvent extends PAObjectEvent {
 	    return a;
 	return null;
     }
-    
+
     /**
      * Gets the new rotation of the object
      * 

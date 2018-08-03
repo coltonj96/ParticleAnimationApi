@@ -3,6 +3,7 @@ package com.aim.coltonjgriswold.paapi.api.graphics.geometry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -12,6 +13,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
+import org.bukkit.configuration.serialization.ConfigurationSerializable;
+import org.bukkit.configuration.serialization.SerializableAs;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -35,8 +38,9 @@ import com.aim.coltonjgriswold.paapi.api.graphics.events.PAPlayerClickEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAAction;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PANode;
 
-public abstract class PAObject implements Listener {
-    
+@SerializableAs("PAObject")
+public class PAObject implements Listener, ConfigurationSerializable {
+
     private Location a;
     private Set<PANode> b;
     private UUID c;
@@ -45,34 +49,110 @@ public abstract class PAObject implements Listener {
     private double[] f;
     private boolean g;
     private static Map<UUID, PAObject> objects;
-    
+
     static {
 	objects = new HashMap<UUID, PAObject>();
     }
-    
+
     /**
-     * Where to spawn the center of this new PAObject with a scale of (0.5, 0.5, 0.5)
+     * Contructor for deserializing
      * 
-     * @param location The location
+     * @param object
+     *            The PAObject to deserialize
+     */
+    public PAObject(Map<String, Object> object) {
+	if (object.containsKey("location")) {
+	    Object raw = object.get("location");
+	    if (raw instanceof Map) {
+		Map<?, ?> rawmap = (Map<?, ?>) raw;
+		Map<String, Object> map = new HashMap<String, Object>();
+		for (Map.Entry<?, ?> entry : rawmap.entrySet()) {
+		    map.put(entry.getKey().toString(), entry.getValue());
+		}
+		a = Location.deserialize(map);
+	    }
+	}
+	b = new HashSet<PANode>();
+	if (object.containsKey("nodes")) {
+	    Object raw = object.get("nodes");
+	    if (raw instanceof List) {
+		List<?> list = (List<?>) raw;
+		if (!list.isEmpty()) {
+		    for (Object o : list) {
+			if (o instanceof Map) {
+			    Map<?, ?> rawmap = (Map<?, ?>) o;
+			    Map<String, Object> map = new HashMap<String, Object>();
+			    for (Map.Entry<?, ?> entry : rawmap.entrySet()) {
+				map.put(entry.getKey().toString(), entry.getValue());
+			    }
+			    PANode node = PANode.deserialize(map);
+			    if (!b.contains(node))
+				b.add(node);
+			}
+		    }
+		}
+	    }
+	}
+	c = UUID.fromString((String) object.get("uuid"));
+	e = new Vector[] { new Vector(), new Vector(), new Vector() };
+	if (object.containsKey("rotation")) {
+	    Object raw = object.get("rotation");
+	    if (raw instanceof Map) {
+		Map<?, ?> rawmap = (Map<?, ?>) raw;
+		Map<String, Object> map = new HashMap<String, Object>();
+		for (Map.Entry<?, ?> entry : rawmap.entrySet()) {
+		    map.put(entry.getKey().toString(), entry.getValue());
+		}
+		setRotation(Vector.deserialize(map));
+	    }
+	}
+	if (object.containsKey("velocity")) {
+	    Object raw = object.get("velocity");
+	    if (raw instanceof Map) {
+		Map<?, ?> rawmap = (Map<?, ?>) raw;
+		Map<String, Object> map = new HashMap<String, Object>();
+		for (Map.Entry<?, ?> entry : rawmap.entrySet()) {
+		    map.put(entry.getKey().toString(), entry.getValue());
+		}
+		setVelocity(Vector.deserialize(map));
+	    }
+	}
+	f = new double[] { 0.0, 0.0 };
+	f[0] = (double) object.get("scale");
+	f[1] = Math.sqrt(3 * (f[0] * f[0]));
+	g = (boolean) object.get("visible");
+	update();
+	if (!objects.containsKey(c))
+	    objects.put(c, this);
+    }
+
+    /**
+     * Where to spawn the center of this new PAObject with a scale of (0.5, 0.5,
+     * 0.5)
+     * 
+     * @param location
+     *            The location
      */
     public PAObject(Location location) {
 	this(location, new HashSet<PANode>(), 1.0);
     }
-    
+
     /**
      * Where to spawn the center of this new PAObject with a scale
      * 
-     * @param location The location
+     * @param location
+     *            The location
      * @param scale
      */
     public PAObject(Location location, double scale) {
 	this(location, new HashSet<PANode>(), scale);
     }
-    
+
     /**
      * Where to spawn the center of this new PAObject with a scale and nodes
      * 
-     * @param location The location
+     * @param location
+     *            The location
      * @param nodes
      * @param scale
      */
@@ -87,7 +167,7 @@ public abstract class PAObject implements Listener {
 	objects.put(c, this);
 	Bukkit.getServer().getPluginManager().registerEvents(this, ParticleAnimationApi.instance());
     }
-    
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityInteract(PlayerInteractEvent event) {
 	Player player = event.getPlayer();
@@ -119,7 +199,7 @@ public abstract class PAObject implements Listener {
 	    }
 	}
     }
-    
+
     /**
      * Draw all the nodes once per call
      */
@@ -136,7 +216,7 @@ public abstract class PAObject implements Listener {
 			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, new Particle.DustOptions(node.getColor(), 0.5f));
 			} else if (node.canSetData() && node.hasData()) {
 			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, node.getData());
-			} else{
+			} else {
 			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0);
 			}
 		    }
@@ -147,7 +227,7 @@ public abstract class PAObject implements Listener {
 		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, new Particle.DustOptions(node.getColor(), 0.5f));
 		} else if (node.canSetData() && node.hasData()) {
 		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, node.getData());
-		} else{
+		} else {
 		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0);
 		}
 	    }
@@ -158,6 +238,7 @@ public abstract class PAObject implements Listener {
 	    if (!event.isCancelled()) {
 		a.add(e[2]);
 		e[2] = e[2].add(new Vector().subtract(e[2]).multiply(0.1635));
+		System.out.println(e[2].toString());
 	    }
 	}
 	List<Entity> entities = getEntities();
@@ -178,7 +259,7 @@ public abstract class PAObject implements Listener {
 	    }
 	}
     }
-    
+
     /**
      * Gets the true center of this objects nodes
      * 
@@ -192,7 +273,7 @@ public abstract class PAObject implements Listener {
 	double n = b.size();
 	return v.divide(new Vector(n, n, n));
     }
-    
+
     /**
      * Gets the location of this object
      * 
@@ -201,7 +282,7 @@ public abstract class PAObject implements Listener {
     public Location getLocation() {
 	return a;
     }
-    
+
     /**
      * Gets the current scale of this object
      * 
@@ -210,11 +291,12 @@ public abstract class PAObject implements Listener {
     public double getscale() {
 	return f[0];
     }
-    
+
     /**
      * Adds nodes to the object
      * 
-     * @param nodes One or more node
+     * @param nodes
+     *            One or more node
      */
     protected void addNodes(PANode... nodes) {
 	for (PANode node : nodes) {
@@ -223,18 +305,19 @@ public abstract class PAObject implements Listener {
 	}
 	update();
     }
-    
+
     /**
      * Adds a node to the object
      * 
-     * @param node A node
+     * @param node
+     *            A node
      */
     protected void addNode(PANode node) {
 	if (!b.contains(node))
 	    b.add(node);
 	update();
     }
-    
+
     /**
      * Gets the nodes of this object
      * 
@@ -243,16 +326,17 @@ public abstract class PAObject implements Listener {
     public Set<PANode> getNodes() {
 	return b;
     }
-    
+
     /**
      * Sets this object to be visible or not
      * 
-     * @param visible Is this object visible?
+     * @param visible
+     *            Is this object visible?
      */
     public void setVisible(boolean visible) {
 	g = visible;
     }
-    
+
     /**
      * Gets if this object is visible
      * 
@@ -261,7 +345,7 @@ public abstract class PAObject implements Listener {
     public boolean isVisible() {
 	return g;
     }
-    
+
     /**
      * Lerp
      * 
@@ -273,7 +357,7 @@ public abstract class PAObject implements Listener {
     protected Vector lerp(Vector start, Vector end, double percent) {
 	return start.clone().add(end.clone().subtract(start).multiply(percent));
     }
-    
+
     /**
      * NLerp
      * 
@@ -285,22 +369,24 @@ public abstract class PAObject implements Listener {
     protected Vector nLerp(Vector start, Vector end, double percent) {
 	return lerp(start, end, percent).normalize();
     }
-    
+
     /**
      * Remove a node
      * 
-     * @param index The index of the node
+     * @param index
+     *            The index of the node
      */
     protected void removeNode(int index) {
 	if (index < b.size())
 	    b.remove(index);
 	update();
     }
-    
+
     /**
      * Remove nodes
      * 
-     * @param nodes One or more nodes
+     * @param nodes
+     *            One or more nodes
      */
     protected void removeNodes(PANode... nodes) {
 	for (PANode node : nodes) {
@@ -309,7 +395,7 @@ public abstract class PAObject implements Listener {
 	}
 	update();
     }
-    
+
     /**
      * Remove a node
      * 
@@ -320,7 +406,7 @@ public abstract class PAObject implements Listener {
 	    b.remove(node);
 	update();
     }
-    
+
     /**
      * Gets the Unique id of this object
      * 
@@ -329,13 +415,16 @@ public abstract class PAObject implements Listener {
     public UUID getUuid() {
 	return c;
     }
-    
+
     /**
      * Move this object
      * 
-     * @param x Xaxis
-     * @param y Yaxis
-     * @param z Zaxis
+     * @param x
+     *            Xaxis
+     * @param y
+     *            Yaxis
+     * @param z
+     *            Zaxis
      */
     public void move(double x, double y, double z) {
 	PAObjectMoveEvent event = new PAObjectMoveEvent(this, a.toVector(), a.clone().add(x, y, z).toVector());
@@ -343,11 +432,12 @@ public abstract class PAObject implements Listener {
 	if (!event.isCancelled())
 	    a.add(x, y, z);
     }
-    
+
     /**
      * Move this object
      * 
-     * @param amount The amount as a Vector
+     * @param amount
+     *            The amount as a Vector
      */
     public void move(Vector amount) {
 	PAObjectMoveEvent event = new PAObjectMoveEvent(this, a.toVector(), a.clone().add(amount).toVector());
@@ -355,13 +445,16 @@ public abstract class PAObject implements Listener {
 	if (!event.isCancelled())
 	    a.add(amount);
     }
-    
+
     /**
      * Moves this object relative its location
      * 
-     * @param x X amount
-     * @param y Y amount
-     * @param z	Z amount
+     * @param x
+     *            X amount
+     * @param y
+     *            Y amount
+     * @param z
+     *            Z amount
      */
     public void moveRelative(double x, double y, double z) {
 	Vector amount = new Vector(x, y, z);
@@ -374,11 +467,12 @@ public abstract class PAObject implements Listener {
 	    update();
 	}
     }
-    
+
     /**
      * Moves this object relative its location
      * 
-     * @param relative The relative amount
+     * @param relative
+     *            The relative amount
      */
     public void moveRelative(Vector relative) {
 	PAObjectMoveRelativeEvent event = new PAObjectMoveRelativeEvent(this, a.toVector(), a.clone().add(relative).toVector());
@@ -390,11 +484,12 @@ public abstract class PAObject implements Listener {
 	    update();
 	}
     }
-    
+
     /**
      * Moves this object relative its location
      * 
-     * @param relative The amount as a location
+     * @param relative
+     *            The amount as a location
      */
     public void moveRelative(Location relative) {
 	Vector amount = relative.toVector();
@@ -407,7 +502,7 @@ public abstract class PAObject implements Listener {
 	    update();
 	}
     }
-    
+
     /**
      * Normalize this object
      */
@@ -417,7 +512,7 @@ public abstract class PAObject implements Listener {
 	}
 	update();
     }
-    
+
     /**
      * Rotate this object (degrees)
      * 
@@ -426,7 +521,7 @@ public abstract class PAObject implements Listener {
     public void rotate(Vector rotation) {
 	rotate(rotation.getX(), rotation.getY(), rotation.getZ());
     }
-    
+
     /**
      * Rotate this object
      * 
@@ -443,7 +538,7 @@ public abstract class PAObject implements Listener {
 	    rotZ(degreesZ);
 	}
     }
-    
+
     /**
      * Rotates on the X-axis
      * 
@@ -456,7 +551,7 @@ public abstract class PAObject implements Listener {
 	    rotX(degrees);
 	}
     }
-    
+
     /**
      * Rotates on the Y-axis
      * 
@@ -469,7 +564,7 @@ public abstract class PAObject implements Listener {
 	    rotY(degrees);
 	}
     }
-    
+
     /**
      * Rotates on the Z-axis
      * 
@@ -482,7 +577,7 @@ public abstract class PAObject implements Listener {
 	    rotZ(degrees);
 	}
     }
-    
+
     /**
      * Set the rotation of this object (degrees)
      * 
@@ -491,7 +586,7 @@ public abstract class PAObject implements Listener {
     public void setRotation(Vector rotation) {
 	setRotation(rotation.getX(), rotation.getY(), rotation.getZ());
     }
-    
+
     /**
      * Set the rotation of this object
      * 
@@ -512,7 +607,7 @@ public abstract class PAObject implements Listener {
 	    rotZ(degreesZ);
 	}
     }
-    
+
     /**
      * Set rotation on the X-axis
      * 
@@ -526,7 +621,7 @@ public abstract class PAObject implements Listener {
 	    rotX(degrees);
 	}
     }
-    
+
     /**
      * Set rotation on the Y-axis
      * 
@@ -540,7 +635,7 @@ public abstract class PAObject implements Listener {
 	    rotY(degrees);
 	}
     }
-    
+
     /**
      * Set rotation on the Z-axis
      * 
@@ -554,7 +649,7 @@ public abstract class PAObject implements Listener {
 	    rotZ(degrees);
 	}
     }
-    
+
     /**
      * Get the action for this object
      * 
@@ -563,7 +658,7 @@ public abstract class PAObject implements Listener {
     public PAAction getAction() {
 	return d;
     }
-    
+
     /**
      * Gets this objects hitbox as a vector ( X, Y, Z = Width, Height, Length)
      * 
@@ -572,7 +667,7 @@ public abstract class PAObject implements Listener {
     public Vector getHitbox() {
 	return e[1].clone();
     }
-    
+
     /**
      * Gets the Width of this objects hitbox
      * 
@@ -581,7 +676,7 @@ public abstract class PAObject implements Listener {
     public double getWidth() {
 	return e[1].getX();
     }
-    
+
     /**
      * Gets the Height of this objects hitbox
      * 
@@ -590,7 +685,7 @@ public abstract class PAObject implements Listener {
     public double getHeight() {
 	return e[1].getY();
     }
-    
+
     /**
      * Gets the Length of this objects hitbox
      * 
@@ -599,7 +694,7 @@ public abstract class PAObject implements Listener {
     public double getLength() {
 	return e[1].getZ();
     }
-    
+
     /**
      * Gets this objects velocity
      * 
@@ -608,60 +703,69 @@ public abstract class PAObject implements Listener {
     public Vector getVelocity() {
 	return e[2].clone();
     }
-    
+
     /**
      * Sets this objects velocity
      * 
-     * @param velocity A Vector
+     * @param velocity
+     *            A Vector
      */
     public void setVelocity(Vector velocity) {
 	e[2] = velocity;
     }
-    
+
     /**
      * Sets this objects velocity
      * 
-     * @param x X axis velocity
-     * @param y Y axis velocity
-     * @param z Z axis velocity
+     * @param x
+     *            X axis velocity
+     * @param y
+     *            Y axis velocity
+     * @param z
+     *            Z axis velocity
      */
     public void setVelocity(double x, double y, double z) {
 	e[2] = new Vector(x, y, z);
     }
-    
+
     /**
      * Adds velocity to this object
      * 
-     * @param velocity A Vector
+     * @param velocity
+     *            A Vector
      */
     public void addVelocity(Vector velocity) {
 	e[2].add(velocity);
     }
-    
+
     /**
      * Adds velocity to this object
      * 
-     * @param x X axis velocity
-     * @param y Y axis velocity
-     * @param z Z axis velocity
+     * @param x
+     *            X axis velocity
+     * @param y
+     *            Y axis velocity
+     * @param z
+     *            Z axis velocity
      */
     public void addVelocity(double x, double y, double z) {
 	e[2].add(new Vector(x, y, z));
     }
-    
+
     /**
      * Gets if this object has a velocity
      * 
      * @return boolean
      */
     public boolean hasVelocity() {
-	return e[2].lengthSquared() > 0.0;
+	return e[2].lengthSquared() >= 0.000001;
     }
 
     /**
      * Get if a point is within the bounds of this objects hitbox
      * 
-     * @param vector A Vector
+     * @param vector
+     *            A Vector
      * @return boolean
      */
     public boolean inHitbox(Vector vector) {
@@ -675,7 +779,7 @@ public abstract class PAObject implements Listener {
 	Vector l = a.toVector();
 	return vector.isInAABB(min.add(l), max.add(l));
     }
-    
+
     /**
      * Gets entities within the bounds of this objects hitbox
      * 
@@ -685,7 +789,7 @@ public abstract class PAObject implements Listener {
 	Vector v = e[1].clone().divide(new Vector(2, 2, 2));
 	return (List<Entity>) a.getWorld().getNearbyEntities(a, v.getX(), v.getY(), v.getZ());
     }
-    
+
     /**
      * Gets blocks within the bounds of this objects hitbox
      * 
@@ -714,7 +818,7 @@ public abstract class PAObject implements Listener {
 	}
 	return blocks;
     }
-    
+
     /**
      * Gets the rotation of this object
      * 
@@ -723,7 +827,7 @@ public abstract class PAObject implements Listener {
     public Vector getRotation() {
 	return e[0].clone();
     }
-    
+
     /**
      * Gets the X-axis rotation of this object
      * 
@@ -732,7 +836,7 @@ public abstract class PAObject implements Listener {
     public double getRotationX() {
 	return e[0].getX();
     }
-    
+
     /**
      * Gets the Y-axis rotation of this object
      * 
@@ -741,7 +845,7 @@ public abstract class PAObject implements Listener {
     public double getRotationY() {
 	return e[0].getY();
     }
-    
+
     /**
      * Gets the Z-axis rotation of this object
      * 
@@ -750,29 +854,32 @@ public abstract class PAObject implements Listener {
     public double getRotationZ() {
 	return e[0].getZ();
     }
-    
+
     /**
      * Set the actions to be performed per update on this object
      * 
-     * @param action The actions
+     * @param action
+     *            The actions
      */
     public void setAction(PAAction action) {
 	d = action;
     }
-    
+
     /**
      * Sets the location of the object
      * 
-     * @param location The location
+     * @param location
+     *            The location
      */
     public void setLocation(Location location) {
 	a = location;
     }
-    
+
     /**
      * Sets the scale of the object
      * 
-     * @param scale The scale
+     * @param scale
+     *            The scale
      */
     public void setScale(double scale) {
 	normalize();
@@ -782,11 +889,12 @@ public abstract class PAObject implements Listener {
 	f = new double[] { scale, Math.sqrt(3 * (scale * scale)) };
 	update();
     }
-    
+
     /**
      * Gets a PAObject by id
      * 
-     * @param id The Uuid of the object
+     * @param id
+     *            The Uuid of the object
      * @return PAObject
      */
     public static PAObject getByUuid(UUID id) {
@@ -794,7 +902,7 @@ public abstract class PAObject implements Listener {
 	    return objects.get(id);
 	return null;
     }
-    
+
     private void rotX(double deg) {
 	e[0].setX((e[0].getX() + deg) % 360.0);
 	double theta = Math.toRadians(deg);
@@ -812,7 +920,7 @@ public abstract class PAObject implements Listener {
 	}
 	update();
     }
-    
+
     private void rotY(double deg) {
 	e[0].setY((e[0].getY() + deg) % 360.0);
 	double theta = Math.toRadians(deg);
@@ -830,7 +938,7 @@ public abstract class PAObject implements Listener {
 	}
 	update();
     }
-    
+
     private void rotZ(double deg) {
 	e[0].setZ((e[0].getZ() + deg) % 360.0);
 	double theta = Math.toRadians(deg);
@@ -848,7 +956,7 @@ public abstract class PAObject implements Listener {
 	}
 	update();
     }
-    
+
     private Set<Vector> vectors() {
 	Set<Vector> blocks = new HashSet<Vector>();
 	Vector max = new Vector();
@@ -871,7 +979,7 @@ public abstract class PAObject implements Listener {
 	blocks.add(a.toVector());
 	return blocks;
     }
-    
+
     private void update() {
 	Vector max = new Vector();
 	Vector min = new Vector();
@@ -881,5 +989,34 @@ public abstract class PAObject implements Listener {
 	    min = Vector.getMinimum(min, o);
 	}
 	e[1] = max.subtract(min);
+    }
+
+    @Override
+    public Map<String, Object> serialize() {
+	Map<String, Object> result = new LinkedHashMap<String, Object>();
+	List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
+	result.put("location", a.serialize());
+	for (PANode node : getNodes()) {
+	    nodes.add(node.serialize());
+	}
+	result.put("nodes", nodes);
+	result.put("uuid", c.toString());
+	result.put("rotation", e[0].serialize());
+	result.put("velocity", e[2].serialize());
+	result.put("scale", f[0]);
+	result.put("visible", g);
+	return result;
+    }
+
+    /**
+     * Deserialize a PAObject
+     * 
+     * @param object
+     *            The PAObject to deserialize
+     * 
+     * @return PAObject
+     */
+    public static PAObject deserialize(Map<String, Object> object) {
+	return new PAObject(object);
     }
 }

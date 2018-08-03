@@ -10,21 +10,28 @@ public class PAPoint extends PAPoly {
     /**
      * Create a point
      * 
-     * @param type Particle type
-     * @param location Location in world
-     * @param offset Local offset around location
+     * @param type
+     *            Particle type
+     * @param location
+     *            Location in world
+     * @param offset
+     *            Local offset around location
      */
     public PAPoint(Particle type, Location location, Vector offset) {
 	this(type, location, offset, null);
     }
-    
+
     /**
      * Create a point
      * 
-     * @param type Particle type
-     * @param location Location in world
-     * @param offset Local offset around location
-     * @param color Color of the particle
+     * @param type
+     *            Particle type
+     * @param location
+     *            Location in world
+     * @param offset
+     *            Local offset around location
+     * @param color
+     *            Color of the particle
      */
     public PAPoint(Particle type, Location location, Vector offset, Color color) {
 	super(type, location, color, offset);

@@ -7,12 +7,14 @@ import com.aim.coltonjgriswold.paapi.api.graphics.geometry.PAObject;
 public class PALivingEntityInteractEvent extends PAEntityInteractEvent {
 
     private LivingEntity a;
-    
+
     /**
      * Called when a LivingEntity interacts with an object
      * 
-     * @param object The object
-     * @param entity The entity
+     * @param object
+     *            The object
+     * @param entity
+     *            The entity
      */
     public PALivingEntityInteractEvent(PAObject object, LivingEntity entity) {
 	super(object, entity);
