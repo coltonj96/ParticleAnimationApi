@@ -1,13 +1,12 @@
 package com.aim.coltonjgriswold.paapi.api.graphics.events;
 
-import org.bukkit.util.Vector;
-
 import com.aim.coltonjgriswold.paapi.api.graphics.geometry.PAObject;
+import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAQuaternion;
 
 public class PAObjectRotateEvent extends PAObjectEvent {
 
-    private Vector a;
-    private Vector b;
+    private PAQuaternion a;
+    private PAQuaternion b;
 
     /**
      * Called when an object is rotated
@@ -19,7 +18,7 @@ public class PAObjectRotateEvent extends PAObjectEvent {
      * @param to
      *            The new rotation
      */
-    public PAObjectRotateEvent(PAObject object, Vector from, Vector to) {
+    public PAObjectRotateEvent(PAObject object, PAQuaternion from, PAQuaternion to) {
 	super(object);
 	a = from;
 	b = to;
@@ -28,9 +27,9 @@ public class PAObjectRotateEvent extends PAObjectEvent {
     /**
      * Gets the old rotation of the object
      * 
-     * @return Vector
+     * @return PAQuaternion
      */
-    public Vector getFrom() {
+    public PAQuaternion getFrom() {
 	if (!cancelled)
 	    return a;
 	return null;
@@ -39,9 +38,9 @@ public class PAObjectRotateEvent extends PAObjectEvent {
     /**
      * Gets the new rotation of the object
      * 
-     * @return Vector
+     * @return PAQuaternion
      */
-    public Vector getTo() {
+    public PAQuaternion getTo() {
 	if (!cancelled)
 	    return b;
 	return null;

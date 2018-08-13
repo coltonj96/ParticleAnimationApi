@@ -30,6 +30,7 @@ import com.aim.coltonjgriswold.paapi.ParticleAnimationApi;
 import com.aim.coltonjgriswold.paapi.api.graphics.enums.PAButton;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAEntityInteractEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PALivingEntityInteractEvent;
+import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectCollideEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectMoveEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectMoveRelativeEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectRotateEvent;
@@ -37,6 +38,7 @@ import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectVelocityEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAPlayerClickEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAAction;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PANode;
+import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAQuaternion;
 
 @SerializableAs("PAObject")
 public class PAObject implements Listener, ConfigurationSerializable {
@@ -48,6 +50,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
     private Vector[] e;
     private double[] f;
     private boolean g;
+    private PAQuaternion h;
     private static Map<UUID, PAObject> objects;
 
     static {
@@ -94,7 +97,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    }
 	}
 	c = UUID.fromString((String) object.get("uuid"));
-	e = new Vector[] { new Vector(), new Vector(), new Vector() };
+	e = new Vector[] { new Vector(), new Vector(), new Vector(), new Vector() };
 	if (object.containsKey("rotation")) {
 	    Object raw = object.get("rotation");
 	    if (raw instanceof Map) {
@@ -103,7 +106,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
 		for (Map.Entry<?, ?> entry : rawmap.entrySet()) {
 		    map.put(entry.getKey().toString(), entry.getValue());
 		}
-		setRotation(Vector.deserialize(map));
+		h = PAQuaternion.deserialize(map);
 	    }
 	}
 	if (object.containsKey("velocity")) {
@@ -114,7 +117,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
 		for (Map.Entry<?, ?> entry : rawmap.entrySet()) {
 		    map.put(entry.getKey().toString(), entry.getValue());
 		}
-		setVelocity(Vector.deserialize(map));
+		e[3] = Vector.deserialize(map);
 	    }
 	}
 	f = new double[] { 0.0, 0.0 };
@@ -160,16 +163,17 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	a = location;
 	b = nodes;
 	c = UUID.randomUUID();
-	e = new Vector[] { new Vector(), new Vector(), new Vector() };
+	e = new Vector[] { new Vector(), new Vector(), new Vector(), new Vector() };
 	f = new double[] { scale, Math.sqrt(3 * (scale * scale)) };
 	g = false;
+	h = new PAQuaternion();
 	update();
 	objects.put(c, this);
 	Bukkit.getServer().getPluginManager().registerEvents(this, ParticleAnimationApi.instance());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onEntityInteract(PlayerInteractEvent event) {
+    void onEntityInteract(PlayerInteractEvent event) {
 	Player player = event.getPlayer();
 	Action action = event.getAction();
 	if (action.equals(Action.LEFT_CLICK_AIR) || action.equals(Action.LEFT_CLICK_BLOCK) || action.equals(Action.RIGHT_CLICK_AIR) || action.equals(Action.RIGHT_CLICK_BLOCK)) {
@@ -233,12 +237,11 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    }
 	}
 	if (hasVelocity()) {
-	    PAObjectVelocityEvent event = new PAObjectVelocityEvent(this, e[2].clone());
+	    PAObjectVelocityEvent event = new PAObjectVelocityEvent(this, e[3].clone());
 	    Bukkit.getServer().getPluginManager().callEvent(event);
 	    if (!event.isCancelled()) {
-		a.add(e[2]);
-		e[2] = e[2].add(new Vector().subtract(e[2]).multiply(0.1635));
-		System.out.println(e[2].toString());
+		a.add(e[3]);
+		e[3] = e[3].add(new Vector().subtract(e[3]).multiply(0.1635));
 	    }
 	}
 	List<Entity> entities = getEntities();
@@ -256,6 +259,12 @@ public class PAObject implements Listener, ConfigurationSerializable {
 		    PALivingEntityInteractEvent event = new PALivingEntityInteractEvent(this, (Player) entity);
 		    Bukkit.getServer().getPluginManager().callEvent(event);
 		}
+	    }
+	}
+	for (PAObject obj : objects.values()) {
+	    if (!equals(obj) && obj.g && isColliding(obj)) {
+		PAObjectCollideEvent event = new PAObjectCollideEvent(this, obj);
+		Bukkit.getServer().getPluginManager().callEvent(event);
 	    }
 	}
     }
@@ -356,18 +365,6 @@ public class PAObject implements Listener, ConfigurationSerializable {
      */
     protected Vector lerp(Vector start, Vector end, double percent) {
 	return start.clone().add(end.clone().subtract(start).multiply(percent));
-    }
-
-    /**
-     * NLerp
-     * 
-     * @param start
-     * @param end
-     * @param percent
-     * @return Vector
-     */
-    protected Vector nLerp(Vector start, Vector end, double percent) {
-	return lerp(start, end, percent).normalize();
     }
 
     /**
@@ -514,38 +511,53 @@ public class PAObject implements Listener, ConfigurationSerializable {
     }
 
     /**
-     * Rotate this object (degrees)
+     * Rotate this object
      * 
      * @param rotation
      */
-    public void rotate(Vector rotation) {
-	rotate(rotation.getX(), rotation.getY(), rotation.getZ());
-    }
-
-    /**
-     * Rotate this object
-     * 
-     * @param degreesX
-     * @param degreesY
-     * @param degreesZ
-     */
-    public void rotate(double degreesX, double degreesY, double degreesZ) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().add(new Vector(degreesX, degreesY, degreesZ)));
+    public void rotate(PAQuaternion rotation) {
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, h.clone(), rotation.clone());
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
-	    rotX(degreesX);
-	    rotY(degreesY);
-	    rotZ(degreesZ);
+	    rot(rotation);
 	}
     }
 
     /**
-     * Rotates on the X-axis
+     * Rotate this object (degrees)
+     * 
+     * @param axis
+     *            The axis to rotate around
+     * @param degrees
+     *            Amount to rotate
+     */
+    public void rotate(Vector axis, double degrees) {
+	rotate(axis.getX(), axis.getY(), axis.getZ(), degrees);
+    }
+
+    /**
+     * Rotate this object around an axis
+     * 
+     * @param axisX
+     * @param axisY
+     * @param axisZ
+     * @param degrees
+     */
+    public void rotate(double axisX, double axisY, double axisZ, double degrees) {
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, h.clone(), PAQuaternion.fromAxisAngles(axisX, axisY, axisZ, degrees));
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    rot(new Vector(axisX, axisY, axisZ), degrees);
+	}
+    }
+
+    /**
+     * Rotate around the X-axis
      * 
      * @param degrees
      */
     public void rotateX(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().add(new Vector(degrees, 0, 0)));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, h.clone(), PAQuaternion.fromAxisAngles(1, 0, 0, degrees));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
 	    rotX(degrees);
@@ -553,12 +565,12 @@ public class PAObject implements Listener, ConfigurationSerializable {
     }
 
     /**
-     * Rotates on the Y-axis
+     * Rotate around the Y-axis
      * 
      * @param degrees
      */
     public void rotateY(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().add(new Vector(0, degrees, 0)));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, h.clone(), PAQuaternion.fromAxisAngles(0, 1, 0, degrees));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
 	    rotY(degrees);
@@ -566,12 +578,12 @@ public class PAObject implements Listener, ConfigurationSerializable {
     }
 
     /**
-     * Rotates on the Z-axis
+     * Rotate around the Z-axis
      * 
      * @param degrees
      */
     public void rotateZ(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().add(new Vector(0, 0, degrees)));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, h.clone(), PAQuaternion.fromAxisAngles(0, 0, 1, degrees));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
 	    rotZ(degrees);
@@ -579,32 +591,43 @@ public class PAObject implements Listener, ConfigurationSerializable {
     }
 
     /**
-     * Set the rotation of this object (degrees)
+     * Set the rotation of this object
      * 
      * @param rotation
      */
-    public void setRotation(Vector rotation) {
-	setRotation(rotation.getX(), rotation.getY(), rotation.getZ());
+    public void setRotation(PAQuaternion rotation) {
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, h.clone(), rotation.clone());
+	Bukkit.getServer().getPluginManager().callEvent(event);
+	if (!event.isCancelled()) {
+	    setRot(rotation);
+	}
+    }
+
+    /**
+     * Set the rotation of this object (degrees)
+     * 
+     * @param axis
+     *            The axis to set the rotation on
+     * @param degrees
+     *            The amount to set
+     */
+    public void setRotation(Vector axis, double degrees) {
+	setRotation(axis.getX(), axis.getY(), axis.getZ(), degrees);
     }
 
     /**
      * Set the rotation of this object
      * 
-     * @param degreesX
-     * @param degreesY
-     * @param degreesZ
+     * @param axisX
+     * @param axisY
+     * @param axisZ
+     * @param degrees
      */
-    public void setRotation(double degreesX, double degreesY, double degreesZ) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), new Vector(degreesX, degreesY, degreesZ));
+    public void setRotation(double axisX, double axisY, double axisZ, double degrees) {
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, h.clone(), PAQuaternion.fromAxisAngles(axisX, axisY, axisZ, degrees));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
-	    Vector r = e[0];
-	    rotX(-r.getX());
-	    rotX(degreesX);
-	    rotY(-r.getY());
-	    rotY(degreesY);
-	    rotZ(-r.getZ());
-	    rotZ(degreesZ);
+	    setRot(new Vector(axisX, axisY, axisZ), degrees);
 	}
     }
 
@@ -614,11 +637,10 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @param degrees
      */
     public void setRotationX(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().setX(degrees));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, h.clone(), PAQuaternion.fromAxisAngles(1, 0, 0, degrees));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
-	    rotX(-e[0].getX());
-	    rotX(degrees);
+	    setRotX(degrees);
 	}
     }
 
@@ -628,11 +650,10 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @param degrees
      */
     public void setRotationY(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().setY(degrees));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, h.clone(), PAQuaternion.fromAxisAngles(0, 1, 0, degrees));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
-	    rotY(-e[0].getY());
-	    rotY(degrees);
+	    setRotY(degrees);
 	}
     }
 
@@ -642,11 +663,10 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @param degrees
      */
     public void setRotationZ(double degrees) {
-	PAObjectRotateEvent event = new PAObjectRotateEvent(this, e[0].clone(), e[0].clone().setZ(degrees));
+	PAObjectRotateEvent event = new PAObjectRotateEvent(this, h.clone(), PAQuaternion.fromAxisAngles(0, 0, 1, degrees));
 	Bukkit.getServer().getPluginManager().callEvent(event);
 	if (!event.isCancelled()) {
-	    rotZ(-e[0].getZ());
-	    rotZ(degrees);
+	    setRotZ(degrees);
 	}
     }
 
@@ -664,8 +684,26 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * 
      * @return Vector
      */
-    public Vector getHitbox() {
+    public Vector getAABB() {
+	return e[0].clone();
+    }
+
+    /**
+     * Get this objects hitbox minimum
+     * 
+     * @return Vector
+     */
+    public Vector getAABBMin() {
 	return e[1].clone();
+    }
+
+    /**
+     * Get this objects hitbox maximum
+     * 
+     * @return Vector
+     */
+    public Vector getAABBMax() {
+	return e[2].clone();
     }
 
     /**
@@ -674,7 +712,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @return double
      */
     public double getWidth() {
-	return e[1].getX();
+	return e[0].getX();
     }
 
     /**
@@ -683,7 +721,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @return double
      */
     public double getHeight() {
-	return e[1].getY();
+	return e[0].getY();
     }
 
     /**
@@ -692,7 +730,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @return double
      */
     public double getLength() {
-	return e[1].getZ();
+	return e[0].getZ();
     }
 
     /**
@@ -701,7 +739,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @return Vector
      */
     public Vector getVelocity() {
-	return e[2].clone();
+	return e[3].clone();
     }
 
     /**
@@ -711,7 +749,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      *            A Vector
      */
     public void setVelocity(Vector velocity) {
-	e[2] = velocity;
+	e[3] = velocity;
     }
 
     /**
@@ -725,7 +763,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      *            Z axis velocity
      */
     public void setVelocity(double x, double y, double z) {
-	e[2] = new Vector(x, y, z);
+	e[3] = new Vector(x, y, z);
     }
 
     /**
@@ -735,7 +773,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      *            A Vector
      */
     public void addVelocity(Vector velocity) {
-	e[2].add(velocity);
+	e[3].add(velocity);
     }
 
     /**
@@ -749,7 +787,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      *            Z axis velocity
      */
     public void addVelocity(double x, double y, double z) {
-	e[2].add(new Vector(x, y, z));
+	e[3].add(new Vector(x, y, z));
     }
 
     /**
@@ -758,7 +796,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @return boolean
      */
     public boolean hasVelocity() {
-	return e[2].lengthSquared() >= 0.000001;
+	return e[3].lengthSquared() >= 0.000001;
     }
 
     /**
@@ -769,15 +807,31 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @return boolean
      */
     public boolean inHitbox(Vector vector) {
-	Vector max = new Vector();
-	Vector min = new Vector();
-	for (PANode node : b) {
-	    Vector o = node.getOffset();
-	    max = Vector.getMaximum(max, o);
-	    min = Vector.getMinimum(min, o);
-	}
 	Vector l = a.toVector();
+	Vector min = e[1].clone();
+	Vector max = e[2].clone();
 	return vector.isInAABB(min.add(l), max.add(l));
+    }
+
+    /**
+     * Check if another object is colliding with this object
+     * 
+     * @param object
+     *            The other object
+     * @return boolean
+     */
+    public boolean isColliding(PAObject object) {
+	Location A = a;
+	Location B = object.a;
+	if (!A.getWorld().equals(B.getWorld()))
+	    return false;
+	Vector locA = A.toVector();
+	Vector locB = B.toVector();
+	Vector minA = e[1].clone().add(locA);
+	Vector maxA = e[2].clone().add(locA);
+	Vector minB = object.e[1].clone().add(locB);
+	Vector maxB = object.e[2].clone().add(locB);
+	return (minA.getX() < maxB.getX() && maxA.getX() > minB.getX()) && (minA.getY() < maxB.getY() && maxA.getY() > minB.getY()) && (minA.getZ() < maxB.getZ() && maxA.getZ() > minB.getZ());
     }
 
     /**
@@ -786,7 +840,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @return Set<Entity>
      */
     public List<Entity> getEntities() {
-	Vector v = e[1].clone().divide(new Vector(2, 2, 2));
+	Vector v = e[0].clone().divide(new Vector(2, 2, 2));
 	return (List<Entity>) a.getWorld().getNearbyEntities(a, v.getX(), v.getY(), v.getZ());
     }
 
@@ -822,37 +876,10 @@ public class PAObject implements Listener, ConfigurationSerializable {
     /**
      * Gets the rotation of this object
      * 
-     * @return Vector
+     * @return PAQuaternion
      */
-    public Vector getRotation() {
-	return e[0].clone();
-    }
-
-    /**
-     * Gets the X-axis rotation of this object
-     * 
-     * @return double
-     */
-    public double getRotationX() {
-	return e[0].getX();
-    }
-
-    /**
-     * Gets the Y-axis rotation of this object
-     * 
-     * @return double
-     */
-    public double getRotationY() {
-	return e[0].getY();
-    }
-
-    /**
-     * Gets the Z-axis rotation of this object
-     * 
-     * @return double
-     */
-    public double getRotationZ() {
-	return e[0].getZ();
+    public PAQuaternion getRotation() {
+	return h.clone();
     }
 
     /**
@@ -903,69 +930,76 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	return null;
     }
 
-    private void rotX(double deg) {
-	e[0].setX((e[0].getX() + deg) % 360.0);
-	double theta = Math.toRadians(deg);
-	double sin = Math.sin(theta);
-	double cos = Math.cos(theta);
+    private void setRot(PAQuaternion rotation) {
+	h = rotation;
 	for (PANode node : b) {
+	    node.resetOffset();
 	    Vector v = node.getOffset();
-	    double x = v.getX();
-	    double y = v.getY();
-	    double z = v.getZ();
-	    v.setX(x);
-	    v.setY((y * cos) - (z * sin));
-	    v.setZ((z * cos) + (y * sin));
+	    h.apply(v);
 	    node.setOffset(v);
 	}
 	update();
+    }
+
+    private void setRot(Vector axis, double deg) {
+	h = PAQuaternion.fromAxisAngles(axis, deg);
+	for (PANode node : b) {
+	    node.resetOffset();
+	    Vector v = node.getOffset();
+	    h.apply(v);
+	    node.setOffset(v);
+	}
+	update();
+    }
+
+    private void setRotX(double deg) {
+	setRot(new Vector(1, 0, 0), deg);
+    }
+
+    private void setRotY(double deg) {
+	setRot(new Vector(0, 1, 0), deg);
+    }
+
+    private void setRotZ(double deg) {
+	setRot(new Vector(0, 0, 1), deg);
+    }
+
+    private void rot(PAQuaternion rotation) {
+	h = rotation;
+	for (PANode node : b) {
+	    Vector v = node.getOffset();
+	    h.apply(v);
+	    node.setOffset(v);
+	}
+	update();
+    }
+
+    private void rot(Vector axis, double deg) {
+	h = PAQuaternion.fromAxisAngles(axis, deg);
+	for (PANode node : b) {
+	    Vector v = node.getOffset();
+	    h.apply(v);
+	    node.setOffset(v);
+	}
+	update();
+    }
+
+    private void rotX(double deg) {
+	rot(new Vector(1, 0, 0), deg);
     }
 
     private void rotY(double deg) {
-	e[0].setY((e[0].getY() + deg) % 360.0);
-	double theta = Math.toRadians(deg);
-	double sin = Math.sin(theta);
-	double cos = Math.cos(theta);
-	for (PANode node : b) {
-	    Vector v = node.getOffset();
-	    double x = v.getX();
-	    double y = v.getY();
-	    double z = v.getZ();
-	    v.setX((x * cos) - (z * sin));
-	    v.setY(y);
-	    v.setZ((z * cos) + (x * sin));
-	    node.setOffset(v);
-	}
-	update();
+	rot(new Vector(0, 1, 0), deg);
     }
 
     private void rotZ(double deg) {
-	e[0].setZ((e[0].getZ() + deg) % 360.0);
-	double theta = Math.toRadians(deg);
-	double sin = Math.sin(theta);
-	double cos = Math.cos(theta);
-	for (PANode node : b) {
-	    Vector v = node.getOffset();
-	    double x = v.getX();
-	    double y = v.getY();
-	    double z = v.getZ();
-	    v.setX((x * cos) - (y * sin));
-	    v.setY((y * cos) + (x * sin));
-	    v.setZ(z);
-	    node.setOffset(v);
-	}
-	update();
+	rot(new Vector(0, 0, 1), deg);
     }
 
     private Set<Vector> vectors() {
 	Set<Vector> blocks = new HashSet<Vector>();
-	Vector max = new Vector();
-	Vector min = new Vector();
-	for (PANode node : b) {
-	    Vector o = node.getOffset();
-	    max = Vector.getMaximum(max, o);
-	    min = Vector.getMinimum(min, o);
-	}
+	Vector min = e[1].clone();
+	Vector max = e[2].clone();
 	Vector v = a.toVector();
 	min.add(v);
 	max.add(v);
@@ -988,7 +1022,9 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    max = Vector.getMaximum(max, o);
 	    min = Vector.getMinimum(min, o);
 	}
-	e[1] = max.subtract(min);
+	e[0] = max.subtract(min);
+	e[1] = min;
+	e[2] = max;
     }
 
     @Override
@@ -1001,8 +1037,8 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	}
 	result.put("nodes", nodes);
 	result.put("uuid", c.toString());
-	result.put("rotation", e[0].serialize());
-	result.put("velocity", e[2].serialize());
+	result.put("rotation", h.serialize());
+	result.put("velocity", e[3].serialize());
 	result.put("scale", f[0]);
 	result.put("visible", g);
 	return result;

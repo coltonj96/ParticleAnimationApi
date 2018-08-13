@@ -159,6 +159,10 @@ public class PANode implements ConfigurationSerializable {
 	    e.remove(index);
     }
 
+    public boolean isConnected(PANode node) {
+	return e.contains(node);
+    }
+    
     /**
      * Gets the color of the node
      * 

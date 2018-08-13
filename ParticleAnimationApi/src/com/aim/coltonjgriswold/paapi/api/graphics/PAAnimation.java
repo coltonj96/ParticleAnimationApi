@@ -116,6 +116,8 @@ public class PAAnimation {
      * @return boolean
      */
     public boolean isRunning() {
-	return !b.isCancelled();
+	if (b != null)
+	    return !b.isCancelled();
+	return false;
     }
 }
