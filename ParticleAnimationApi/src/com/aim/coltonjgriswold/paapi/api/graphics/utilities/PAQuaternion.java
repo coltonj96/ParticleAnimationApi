@@ -1,14 +1,10 @@
 package com.aim.coltonjgriswold.paapi.api.graphics.utilities;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.bukkit.configuration.serialization.ConfigurationSerializable;
-import org.bukkit.configuration.serialization.SerializableAs;
 import org.bukkit.util.Vector;
 
-@SerializableAs("PAQuaternion")
-public class PAQuaternion implements Cloneable, ConfigurationSerializable {
+public class PAQuaternion implements Cloneable {
 
     private double a, b, c, d;
 
@@ -364,6 +360,49 @@ public class PAQuaternion implements Cloneable, ConfigurationSerializable {
 	return "{" + a + ", " + b + ", " + c + ", " + d + "}";
     }
 
+    public static PAQuaternion fromToRotation(Vector from, Vector to) {
+	double dot = from.dot(to);
+	PAQuaternion q = new PAQuaternion();
+	q.a = from.getY() * to.getZ() - to.getY() * from.getZ();
+	q.b = from.getZ() * to.getX() - to.getZ() * from.getX();
+	q.c = from.getX() * to.getY() - to.getX() * from.getY();
+	q.d = dot;
+	q.d += Math.sqrt(q.a * q.a + q.b * q.b + q.c * q.c + q.d * q.d);
+	q.normalize();
+
+	if (Double.isNaN(q.d)) {
+	    if (dot > 0.0) {
+		q.setIdentity();
+	    } else {
+		double l = from.getZ() * from.getZ() + from.getY() * from.getY();
+		double n = 0;
+		if (Math.abs(1.0 - l) < 2.107342e-08) {
+		    n = (2.0 / (1.0 + l));
+		} else {
+		    n = 1.0 / Math.sqrt(l);
+		}
+		if (Double.isInfinite(n)) {
+		    l = from.getX() * from.getX() + from.getZ() * from.getZ();
+		    if (Math.abs(1.0 - l) < 2.107342e-08) {
+			n = (2.0 / (1.0 + l));
+		    } else {
+			n = 1.0 / Math.sqrt(l);
+		    }
+		    q.a = n * from.getZ();
+		    q.b = 0.0;
+		    q.c = n * -from.getX();
+		    q.d = 0.0;
+		} else {
+		    q.a = 0.0;
+		    q.b = n * -from.getZ();
+		    q.c = n * from.getY();
+		    q.d = 0.0;
+		}
+	    }
+	}
+	return q;
+    }
+
     /**
      * Creates a PAQuaternion from an axis an rotation
      * 
@@ -405,27 +444,5 @@ public class PAQuaternion implements Cloneable, ConfigurationSerializable {
      */
     public static PAQuaternion lerp(PAQuaternion from, PAQuaternion to, double amount) {
 	return lerp(from, to, 1.0 - amount, amount);
-    }
-
-    @Override
-    public Map<String, Object> serialize() {
-	Map<String, Object> result = new LinkedHashMap<String, Object>();
-	result.put("x", a);
-	result.put("y", b);
-	result.put("z", c);
-	result.put("w", d);
-	return result;
-    }
-
-    /**
-     * Deserialize a PAObject
-     * 
-     * @param object
-     *            The PAObject to deserialize
-     * 
-     * @return PAObject
-     */
-    public static PAQuaternion deserialize(Map<String, Object> object) {
-	return new PAQuaternion(object);
     }
 }

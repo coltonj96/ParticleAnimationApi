@@ -1,6 +1,6 @@
 package com.aim.coltonjgriswold.paapi.api.graphics.events;
 
-import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PANode;
+import com.aim.coltonjgriswold.paapi.api.graphics.geometry.mesh.PANode;
 
 public class PANodeEvent extends PAEvent {
 

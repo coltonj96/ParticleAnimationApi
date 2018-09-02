@@ -95,6 +95,7 @@ public class PAAnimation {
 			if (object.getAction() != null)
 			    object.getAction().run(object);
 			object.draw();
+			object.update();
 		    }
 		}
 	    }

@@ -3,7 +3,6 @@ package com.aim.coltonjgriswold.paapi.api.graphics.geometry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,8 +12,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
-import org.bukkit.configuration.serialization.ConfigurationSerializable;
-import org.bukkit.configuration.serialization.SerializableAs;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -36,12 +33,13 @@ import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectMoveRelativeEve
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectRotateEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAObjectVelocityEvent;
 import com.aim.coltonjgriswold.paapi.api.graphics.events.PAPlayerClickEvent;
+import com.aim.coltonjgriswold.paapi.api.graphics.geometry.mesh.PAFace;
+import com.aim.coltonjgriswold.paapi.api.graphics.geometry.mesh.PAHalfEdge;
+import com.aim.coltonjgriswold.paapi.api.graphics.geometry.mesh.PANode;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAAction;
-import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PANode;
 import com.aim.coltonjgriswold.paapi.api.graphics.utilities.PAQuaternion;
 
-@SerializableAs("PAObject")
-public class PAObject implements Listener, ConfigurationSerializable {
+public class PAObject implements Listener {
 
     private Location a;
     private Set<PANode> b;
@@ -51,82 +49,11 @@ public class PAObject implements Listener, ConfigurationSerializable {
     private double[] f;
     private boolean g;
     private PAQuaternion h;
+    private Set<PAFace> i;
     private static Map<UUID, PAObject> objects;
 
     static {
 	objects = new HashMap<UUID, PAObject>();
-    }
-
-    /**
-     * Contructor for deserializing
-     * 
-     * @param object
-     *            The PAObject to deserialize
-     */
-    public PAObject(Map<String, Object> object) {
-	if (object.containsKey("location")) {
-	    Object raw = object.get("location");
-	    if (raw instanceof Map) {
-		Map<?, ?> rawmap = (Map<?, ?>) raw;
-		Map<String, Object> map = new HashMap<String, Object>();
-		for (Map.Entry<?, ?> entry : rawmap.entrySet()) {
-		    map.put(entry.getKey().toString(), entry.getValue());
-		}
-		a = Location.deserialize(map);
-	    }
-	}
-	b = new HashSet<PANode>();
-	if (object.containsKey("nodes")) {
-	    Object raw = object.get("nodes");
-	    if (raw instanceof List) {
-		List<?> list = (List<?>) raw;
-		if (!list.isEmpty()) {
-		    for (Object o : list) {
-			if (o instanceof Map) {
-			    Map<?, ?> rawmap = (Map<?, ?>) o;
-			    Map<String, Object> map = new HashMap<String, Object>();
-			    for (Map.Entry<?, ?> entry : rawmap.entrySet()) {
-				map.put(entry.getKey().toString(), entry.getValue());
-			    }
-			    PANode node = PANode.deserialize(map);
-			    if (!b.contains(node))
-				b.add(node);
-			}
-		    }
-		}
-	    }
-	}
-	c = UUID.fromString((String) object.get("uuid"));
-	e = new Vector[] { new Vector(), new Vector(), new Vector(), new Vector() };
-	if (object.containsKey("rotation")) {
-	    Object raw = object.get("rotation");
-	    if (raw instanceof Map) {
-		Map<?, ?> rawmap = (Map<?, ?>) raw;
-		Map<String, Object> map = new HashMap<String, Object>();
-		for (Map.Entry<?, ?> entry : rawmap.entrySet()) {
-		    map.put(entry.getKey().toString(), entry.getValue());
-		}
-		h = PAQuaternion.deserialize(map);
-	    }
-	}
-	if (object.containsKey("velocity")) {
-	    Object raw = object.get("velocity");
-	    if (raw instanceof Map) {
-		Map<?, ?> rawmap = (Map<?, ?>) raw;
-		Map<String, Object> map = new HashMap<String, Object>();
-		for (Map.Entry<?, ?> entry : rawmap.entrySet()) {
-		    map.put(entry.getKey().toString(), entry.getValue());
-		}
-		e[3] = Vector.deserialize(map);
-	    }
-	}
-	f = new double[] { 0.0, 0.0 };
-	f[0] = (double) object.get("scale");
-	f[1] = Math.sqrt(3 * (f[0] * f[0]));
-	g = (boolean) object.get("visible");
-	update();
-	if (!objects.containsKey(c))
-	    objects.put(c, this);
     }
 
     /**
@@ -137,7 +64,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      *            The location
      */
     public PAObject(Location location) {
-	this(location, new HashSet<PANode>(), 1.0);
+	this(location, new HashSet<PAFace>(), 1.0);
     }
 
     /**
@@ -148,7 +75,7 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @param scale
      */
     public PAObject(Location location, double scale) {
-	this(location, new HashSet<PANode>(), scale);
+	this(location, new HashSet<PAFace>(), scale);
     }
 
     /**
@@ -159,15 +86,17 @@ public class PAObject implements Listener, ConfigurationSerializable {
      * @param nodes
      * @param scale
      */
-    public PAObject(Location location, Set<PANode> nodes, double scale) {
+    public PAObject(Location location, Set<PAFace> faces, double scale) {
 	a = location;
-	b = nodes;
+	b = new HashSet<PANode>();
 	c = UUID.randomUUID();
 	e = new Vector[] { new Vector(), new Vector(), new Vector(), new Vector() };
 	f = new double[] { scale, Math.sqrt(3 * (scale * scale)) };
 	g = false;
 	h = new PAQuaternion();
-	update();
+	i = faces;
+	updateVars();
+	updateHitbox();
 	objects.put(c, this);
 	Bukkit.getServer().getPluginManager().registerEvents(this, ParticleAnimationApi.instance());
     }
@@ -205,66 +134,28 @@ public class PAObject implements Listener, ConfigurationSerializable {
     }
 
     /**
-     * Draw all the nodes once per call
+     * Draw all the faces once per call
      */
     public void draw() {
 	if (!g)
 	    return;
-	for (PANode node : b) {
-	    PANode[] nodes = node.getConnectedNodes().toArray(new PANode[0]);
-	    if (nodes.length > 0) {
-		for (int A = 0; A <= nodes.length - 1; A++) {
-		    for (double B = 0.0; B < (f[1] * b.size()); B++) {
-			Vector v = lerp(node.getOffset(), nodes[(A + 1) % nodes.length].getOffset(), B / (f[1] * b.size()));
-			if (node.isColorable() && node.hasColor()) {
-			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, new Particle.DustOptions(node.getColor(), 0.5f));
-			} else if (node.canSetData() && node.hasData()) {
-			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, node.getData());
-			} else {
-			    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0);
-			}
+	for (PAFace face : i) {
+	    PAHalfEdge edge = face.getStartEdge();
+	    double s = face.getHalfEdges().size();
+	    for (int x = 0; x < s; x++) {
+		PANode nodeA = edge.head();
+		PANode nodeB = edge.next().head();
+		for (double n = 0.0; n < f[1] * s; n++) {
+		    Vector v = lerp(nodeA.getOffset(), nodeB.getOffset(), n / (f[1] * s));
+		    if (nodeA.isColorable() && nodeA.hasColor()) {
+			a.getWorld().spawnParticle(nodeA.getParticle(), a.clone().add(v), 0, 0, 0, 0, new Particle.DustOptions(nodeA.getColor(), 0.5f));
+		    } else if (nodeA.canSetData() && nodeA.hasData()) {
+			a.getWorld().spawnParticle(nodeA.getParticle(), a.clone().add(v), 0, 0, 0, 0, nodeA.getData());
+		    } else {
+			a.getWorld().spawnParticle(nodeA.getParticle(), a.clone().add(v), 0, 0, 0, 0);
 		    }
 		}
-	    } else {
-		Vector v = node.getOffset().multiply(f[0]);
-		if (node.isColorable() && node.hasColor()) {
-		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, new Particle.DustOptions(node.getColor(), 0.5f));
-		} else if (node.canSetData() && node.hasData()) {
-		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0, node.getData());
-		} else {
-		    a.getWorld().spawnParticle(node.getParticle(), a.clone().add(v), 0, 0, 0, 0);
-		}
-	    }
-	}
-	if (hasVelocity()) {
-	    PAObjectVelocityEvent event = new PAObjectVelocityEvent(this, e[3].clone());
-	    Bukkit.getServer().getPluginManager().callEvent(event);
-	    if (!event.isCancelled()) {
-		a.add(e[3]);
-		e[3] = e[3].add(new Vector().subtract(e[3]).multiply(0.1635));
-	    }
-	}
-	List<Entity> entities = getEntities();
-	if (!entities.isEmpty()) {
-	    for (Entity entity : entities) {
-		{
-		    PAEntityInteractEvent event = new PAEntityInteractEvent(this, entity);
-		    Bukkit.getServer().getPluginManager().callEvent(event);
-		}
-		if (entity instanceof LivingEntity) {
-		    PALivingEntityInteractEvent event = new PALivingEntityInteractEvent(this, (LivingEntity) entity);
-		    Bukkit.getServer().getPluginManager().callEvent(event);
-		}
-		if (entity instanceof Player) {
-		    PALivingEntityInteractEvent event = new PALivingEntityInteractEvent(this, (Player) entity);
-		    Bukkit.getServer().getPluginManager().callEvent(event);
-		}
-	    }
-	}
-	for (PAObject obj : objects.values()) {
-	    if (!equals(obj) && obj.g && isColliding(obj)) {
-		PAObjectCollideEvent event = new PAObjectCollideEvent(this, obj);
-		Bukkit.getServer().getPluginManager().callEvent(event);
+		edge = edge.next();
 	    }
 	}
     }
@@ -302,29 +193,53 @@ public class PAObject implements Listener, ConfigurationSerializable {
     }
 
     /**
-     * Adds nodes to the object
+     * Addes new faces to this object
      * 
-     * @param nodes
-     *            One or more node
+     * @param faces
      */
-    protected void addNodes(PANode... nodes) {
-	for (PANode node : nodes) {
-	    if (!b.contains(node))
-		b.add(node);
+    protected void addFaces(PAFace... faces) {
+	for (PAFace face : faces) {
+	    if (!i.contains(face))
+		i.add(face);
 	}
-	update();
+	updateVars();
     }
-
+    
     /**
-     * Adds a node to the object
+     * Addes new a face to this object
      * 
-     * @param node
-     *            A node
+     * @param face
      */
-    protected void addNode(PANode node) {
-	if (!b.contains(node))
-	    b.add(node);
-	update();
+    protected void addFace(PAFace face) {
+	if (!i.contains(face)) {
+	    i.add(face);
+	    updateVars();
+	}
+    }
+    
+    /**
+     * Removes faces from this object
+     * 
+     * @param faces
+     */
+    protected void removeFaces(PAFace... faces) {
+	for (PAFace face : faces) {
+	    if (i.contains(face))
+		i.remove(face);
+	}
+	updateVars();
+    }
+    
+    /**
+     * Removes a face from this object
+     * 
+     * @param face
+     */
+    protected void removeFace(PAFace face) {
+	if (!i.contains(face)) {
+	    i.remove(face);
+	    updateVars();
+	}
     }
 
     /**
@@ -334,6 +249,15 @@ public class PAObject implements Listener, ConfigurationSerializable {
      */
     public Set<PANode> getNodes() {
 	return b;
+    }
+    
+    /**
+     * Gets the faces of this object
+     * 
+     * @return Set<PAFace>
+     */
+    public Set<PAFace> getFaces() {
+	return i;
     }
 
     /**
@@ -365,43 +289,6 @@ public class PAObject implements Listener, ConfigurationSerializable {
      */
     protected Vector lerp(Vector start, Vector end, double percent) {
 	return start.clone().add(end.clone().subtract(start).multiply(percent));
-    }
-
-    /**
-     * Remove a node
-     * 
-     * @param index
-     *            The index of the node
-     */
-    protected void removeNode(int index) {
-	if (index < b.size())
-	    b.remove(index);
-	update();
-    }
-
-    /**
-     * Remove nodes
-     * 
-     * @param nodes
-     *            One or more nodes
-     */
-    protected void removeNodes(PANode... nodes) {
-	for (PANode node : nodes) {
-	    if (b.contains(node))
-		b.remove(node);
-	}
-	update();
-    }
-
-    /**
-     * Remove a node
-     * 
-     * @param node
-     */
-    protected void removeNode(PANode node) {
-	if (b.contains(node))
-	    b.remove(node);
-	update();
     }
 
     /**
@@ -461,7 +348,8 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    for (PANode node : b) {
 		node.setOffset(node.getOffset().add(amount));
 	    }
-	    update();
+	    updateVars();
+	    updateHitbox();
 	}
     }
 
@@ -478,7 +366,8 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    for (PANode node : b) {
 		node.setOffset(node.getOffset().add(relative));
 	    }
-	    update();
+	    updateVars();
+	    updateHitbox();
 	}
     }
 
@@ -496,7 +385,8 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    for (PANode node : b) {
 		node.setOffset(node.getOffset().add(amount));
 	    }
-	    update();
+	    updateVars();
+	    updateHitbox();
 	}
     }
 
@@ -507,7 +397,8 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	for (PANode node : b) {
 	    node.setOffset(node.getOffset().normalize());
 	}
-	update();
+	updateVars();
+	updateHitbox();
     }
 
     /**
@@ -914,7 +805,62 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    node.setOffset(node.getOffset().multiply(scale));
 	}
 	f = new double[] { scale, Math.sqrt(3 * (scale * scale)) };
-	update();
+	updateHitbox();
+    }
+
+    /**
+     * Rotates this object so if faces a location
+     * 
+     * @param target
+     *            The target location to point at
+     */
+    public void lookAt(Vector target) {
+	Vector delta = target.clone().subtract(getLocation().toVector());
+	Vector up1 = new Vector(0, 1, 0);
+	PAQuaternion rot1 = PAQuaternion.fromToRotation(new Vector(0, 0, 1), delta);
+	Vector right = delta.getCrossProduct(up1);
+	up1 = right.getCrossProduct(delta);
+	Vector up2 = new Vector(0, 1, 0);
+	rot1.apply(up2);
+	PAQuaternion rot2 = PAQuaternion.fromToRotation(up2, up1);
+	setRot(rot2.multiply(rot1));
+    }
+
+    /**
+     * Method used to check and update variables
+     */
+    public void update() {
+	if (hasVelocity()) {
+	    PAObjectVelocityEvent event = new PAObjectVelocityEvent(this, e[3].clone());
+	    Bukkit.getServer().getPluginManager().callEvent(event);
+	    if (!event.isCancelled()) {
+		a.add(e[3]);
+		e[3] = e[3].add(new Vector().subtract(e[3]).multiply(0.1635));
+	    }
+	}
+	List<Entity> entities = getEntities();
+	if (!entities.isEmpty()) {
+	    for (Entity entity : entities) {
+		{
+		    PAEntityInteractEvent event = new PAEntityInteractEvent(this, entity);
+		    Bukkit.getServer().getPluginManager().callEvent(event);
+		}
+		if (entity instanceof LivingEntity) {
+		    PALivingEntityInteractEvent event = new PALivingEntityInteractEvent(this, (LivingEntity) entity);
+		    Bukkit.getServer().getPluginManager().callEvent(event);
+		}
+		if (entity instanceof Player) {
+		    PALivingEntityInteractEvent event = new PALivingEntityInteractEvent(this, (Player) entity);
+		    Bukkit.getServer().getPluginManager().callEvent(event);
+		}
+	    }
+	}
+	for (PAObject obj : objects.values()) {
+	    if (!equals(obj) && obj.g && isColliding(obj)) {
+		PAObjectCollideEvent event = new PAObjectCollideEvent(this, obj);
+		Bukkit.getServer().getPluginManager().callEvent(event);
+	    }
+	}
     }
 
     /**
@@ -938,7 +884,8 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    h.apply(v);
 	    node.setOffset(v);
 	}
-	update();
+	updateVars();
+	updateHitbox();
     }
 
     private void setRot(Vector axis, double deg) {
@@ -949,7 +896,8 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    h.apply(v);
 	    node.setOffset(v);
 	}
-	update();
+	updateVars();
+	updateHitbox();
     }
 
     private void setRotX(double deg) {
@@ -971,7 +919,8 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    h.apply(v);
 	    node.setOffset(v);
 	}
-	update();
+	updateVars();
+	updateHitbox();
     }
 
     private void rot(Vector axis, double deg) {
@@ -981,7 +930,8 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	    h.apply(v);
 	    node.setOffset(v);
 	}
-	update();
+	updateVars();
+	updateHitbox();
     }
 
     private void rotX(double deg) {
@@ -1014,7 +964,15 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	return blocks;
     }
 
-    private void update() {
+    private void updateVars() {
+	Set<PANode> nodes = new HashSet<PANode>();
+	for (PAFace face : i) {
+	    nodes.addAll(face.getNodes());
+	}
+	b = nodes;
+    }
+    
+    private void updateHitbox() {
 	Vector max = new Vector();
 	Vector min = new Vector();
 	for (PANode node : b) {
@@ -1025,34 +983,5 @@ public class PAObject implements Listener, ConfigurationSerializable {
 	e[0] = max.subtract(min);
 	e[1] = min;
 	e[2] = max;
-    }
-
-    @Override
-    public Map<String, Object> serialize() {
-	Map<String, Object> result = new LinkedHashMap<String, Object>();
-	List<Map<String, Object>> nodes = new ArrayList<Map<String, Object>>();
-	result.put("location", a.serialize());
-	for (PANode node : getNodes()) {
-	    nodes.add(node.serialize());
-	}
-	result.put("nodes", nodes);
-	result.put("uuid", c.toString());
-	result.put("rotation", h.serialize());
-	result.put("velocity", e[3].serialize());
-	result.put("scale", f[0]);
-	result.put("visible", g);
-	return result;
-    }
-
-    /**
-     * Deserialize a PAObject
-     * 
-     * @param object
-     *            The PAObject to deserialize
-     * 
-     * @return PAObject
-     */
-    public static PAObject deserialize(Map<String, Object> object) {
-	return new PAObject(object);
     }
 }
